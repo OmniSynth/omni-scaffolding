@@ -156,15 +156,18 @@ onMounted(async () => {
   <div class="home">
     <el-card shadow="never" class="hero">
       <div class="hero-main">
-        <div>
-          <h2>{{ greeting }}，{{ userStore.displayName || userStore.username }}</h2>
-          <p class="desc">
-            数据范围：{{ dataScopeLabel }}
-            <template v-if="userStore.profile?.deptName"> · 部门：{{ userStore.profile.deptName }}</template>
-          </p>
-          <div class="roles">
-            <el-tag v-for="role in userStore.roles" :key="role" size="small" class="tag">{{ role }}</el-tag>
-            <el-text v-if="!userStore.roles.length" type="info" size="small">暂无角色</el-text>
+        <div class="hero-brand">
+          <img class="hero-logo" src="/favicon.png" alt="Omni Admin" width="48" height="48" />
+          <div>
+            <h2>{{ greeting }}，{{ userStore.displayName || userStore.username }}</h2>
+            <p class="desc">
+              数据范围：{{ dataScopeLabel }}
+              <template v-if="userStore.profile?.deptName"> · 部门：{{ userStore.profile.deptName }}</template>
+            </p>
+            <div class="roles">
+              <el-tag v-for="role in userStore.roles" :key="role" size="small" class="tag">{{ role }}</el-tag>
+              <el-text v-if="!userStore.roles.length" type="info" size="small">暂无角色</el-text>
+            </div>
           </div>
         </div>
         <div class="hero-actions">
@@ -305,6 +308,21 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.hero-logo {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: contain;
 }
 
 .desc {

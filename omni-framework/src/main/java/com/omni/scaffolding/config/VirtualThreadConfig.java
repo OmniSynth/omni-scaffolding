@@ -1,5 +1,6 @@
 package com.omni.scaffolding.config;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.task.SimpleAsyncTaskExecutorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -64,6 +65,7 @@ public class VirtualThreadConfig implements AsyncConfigurer {
     /**
      * 未指定执行器名称时，{@code @Async} 默认也走虚拟线程。
      */
+    @NotNull
     @Override
     public Executor getAsyncExecutor() {
         return new TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor());
