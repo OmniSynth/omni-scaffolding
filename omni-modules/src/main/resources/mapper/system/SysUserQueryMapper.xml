@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysUserQueryMapper">
+
+    <select id="findAuthViewByUsername" resultType="com.omni.scaffolding.modules.system.dto.auth.UserAuthView">
+        SELECT id,
+               username,
+               password_hash AS passwordHash,
+               nickname,
+               dept_id AS deptId,
+               enabled
+        FROM sys_user
+        WHERE username = #{username}
+          AND deleted = 0
+    </select>
+
+    <select id="findAuthViewById" resultType="com.omni.scaffolding.modules.system.dto.auth.UserAuthView">
+        SELECT id,
+               username,
+               password_hash AS passwordHash,
+               nickname,
+               dept_id AS deptId,
+               enabled
+        FROM sys_user
+        WHERE id = #{userId}
+          AND deleted = 0
+    </select>
+
+    <select id="findRoleCodesByUserId" resultType="java.lang.String">
+        SELECT r.code
+        FROM sys_role r
+                 INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+          AND r.status = 1
+    </select>
+
+    <select id="findDataScopesByUserId" resultType="java.lang.String">
+        SELECT r.data_scope
+        FROM sys_role r
+                 INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+          AND r.status = 1
+    </select>
+
+    <select id="findPermissionCodesByUserId" resultType="java.lang.String">
+        SELECT DISTINCT m.perms
+        FROM sys_menu m
+                 INNER JOIN sys_role_menu rm ON rm.menu_id = m.id
+                 INNER JOIN sys_user_role ur ON ur.role_id = rm.role_id
+                 INNER JOIN sys_role r ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+          AND r.status = 1
+          AND m.deleted = 0
+          AND m.status = 1
+          AND m.perms IS NOT NULL
+          AND m.perms &lt;&gt; ''
+    </select>
+
+    <select id="findRoleIdsByUserId" resultType="java.lang.Long">
+        SELECT ur.role_id
+        FROM sys_user_role ur
+                 INNER JOIN sys_role r ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+    </select>
+
+    <select id="findRoleNamesByUserId" resultType="java.lang.String">
+        SELECT r.name
+        FROM sys_role r
+                 INNER JOIN sys_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+        ORDER BY r.id
+    </select>
+
+    <select id="findPostIdsByUserId" resultType="java.lang.Long">
+        SELECT up.post_id
+        FROM sys_user_post up
+                 INNER JOIN sys_post p ON p.id = up.post_id
+        WHERE up.user_id = #{userId}
+          AND p.deleted = 0
+    </select>
+
+    <select id="findPostNamesByUserId" resultType="java.lang.String">
+        SELECT p.name
+        FROM sys_post p
+                 INNER JOIN sys_user_post up ON up.post_id = p.id
+        WHERE up.user_id = #{userId}
+          AND p.deleted = 0
+        ORDER BY p.sort, p.id
+    </select>
+
+    <resultMap id="UserDetailMap" type="com.omni.scaffolding.modules.system.dto.user.UserDetailView">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="nickname" column="nickname"/>
+        <result property="realName" column="real_name"/>
+        <result property="mobile" column="mobile"/>
+        <result property="email" column="email"/>
+        <result property="gender" column="gender"/>
+        <result property="avatarFileId" column="avatar_file_id"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="enabled" column="enabled"/>
+        <collection property="postIds" ofType="java.lang.Long" column="id" select="findPostIdsByUserId"/>
+        <collection property="posts" ofType="java.lang.String" column="id" select="findPostNamesByUserId"/>
+        <collection property="roleIds" ofType="java.lang.Long" column="id" select="findRoleIdsByUserId"/>
+        <collection property="roles" ofType="java.lang.String" column="id" select="findRoleNamesByUserId"/>
+        <collection property="permissions" ofType="java.lang.String" column="id" select="findPermissionCodesByUserId"/>
+    </resultMap>
+
+    <sql id="UserSelectColumns">
+        u.id,
+        u.username,
+        u.nickname,
+        u.real_name,
+        u.mobile,
+        u.email,
+        u.gender,
+        u.avatar_file_id,
+        u.dept_id,
+        d.name AS dept_name,
+        u.enabled
+    </sql>
+
+    <select id="findUserDetail" resultMap="UserDetailMap">
+        SELECT
+        <include refid="UserSelectColumns"/>
+        FROM sys_user u
+                 LEFT JOIN sys_dept d ON d.id = u.dept_id AND d.deleted = 0
+        WHERE u.id = #{userId}
+          AND u.deleted = 0
+    </select>
+
+    <sql id="UserSearchWhere">
+        WHERE u.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (u.username LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{keyword}, '%')
+                OR u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                OR u.mobile LIKE CONCAT('%', #{keyword}, '%')
+                OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="ds != null and ds.type != 'ALL'">
+            <choose>
+                <when test="ds.type == 'SELF'">
+                    AND u.id = #{ds.userId}
+                </when>
+                <when test="ds.type == 'DEPT' or ds.type == 'DEPT_AND_CHILD'">
+                    <if test="ds.deptIds != null and ds.deptIds.size() &gt; 0">
+                        AND u.dept_id IN
+                        <foreach collection="ds.deptIds" item="did" open="(" separator="," close=")">
+                            #{did}
+                        </foreach>
+                    </if>
+                    <if test="ds.deptIds == null or ds.deptIds.size() == 0">
+                        AND 1 = 0
+                    </if>
+                </when>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="countUsers" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_user u
+        <include refid="UserSearchWhere"/>
+    </select>
+
+    <select id="searchUsers" resultMap="UserDetailMap">
+        SELECT
+        <include refid="UserSelectColumns"/>
+        FROM sys_user u
+                 LEFT JOIN sys_dept d ON d.id = u.dept_id AND d.deleted = 0
+        <include refid="UserSearchWhere"/>
+        ORDER BY u.id
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByDeptId" resultType="long">
+        SELECT COUNT(1) FROM sys_user WHERE dept_id = #{deptId} AND deleted = 0
+    </select>
+
+    <delete id="deleteUserRoles">
+        DELETE FROM sys_user_role WHERE user_id = #{userId}
+    </delete>
+
+    <insert id="insertUserRole">
+        INSERT INTO sys_user_role (user_id, role_id) VALUES (#{userId}, #{roleId})
+    </insert>
+
+    <delete id="deleteUserPosts">
+        DELETE FROM sys_user_post WHERE user_id = #{userId}
+    </delete>
+
+    <insert id="insertUserPost">
+        INSERT INTO sys_user_post (user_id, post_id) VALUES (#{userId}, #{postId})
+    </insert>
+</mapper>

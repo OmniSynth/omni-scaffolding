@@ -35,14 +35,14 @@ Java 21 + Spring Boot 3.4 单体脚手架，面向高并发、高可用业务场
 omni-scaffolding/                 # 父 POM（packaging=pom）
 ├── omni-common                   # 统一响应、异常、审计基类、缓存/Redis Key 常量、Excel 等
 ├── omni-framework                # VT、Security/JWT、Redis、限流、锁、XSS、可选 Kafka/ES、JPA/MyBatis 装配
-├── omni-system                   # 用户/角色/菜单/部门/字典/参数/日志/任务/白名单/运维
+├── omni-modules                   # 业务模块：system / ops / tool.gen
 ├── omni-demo                     # 双轨持久化 / Kafka / ES 演示（可从 omni-admin 去掉依赖）
 ├── omni-quartz                   # Quartz JDBC 集群定时任务
 ├── omni-admin                    # 启动入口 + application.yml + Flyway + fat jar
 └── omni-web                      # Vue3 管理端（Vite，独立于 Maven）
 ```
 
-依赖方向：`admin → system/demo/quartz → framework → common`（禁止反向依赖）。  
+依赖方向：`admin → modules/demo/quartz → framework → common`（禁止反向依赖）。  
 仍打一个可运行 jar，不是微服务。
 
 ### 逻辑架构
@@ -320,9 +320,15 @@ mvn -s .mvn/settings.xml -pl omni-admin -am spring-boot:run
 
 默认配置见 `omni-admin/src/main/resources/application-dev.yml`：
 
-- DB: `localhost:3306/omni` / `omni` / `omni`  
-- Redis: `localhost:6379`  
+- DB / Redis：见该文件中的 `DB_*` / `REDIS_*` 默认值  
 - 端口: `8080`  
+- 单库开发默认只注册 `master`（不配同址 `slave`），避免 Druid 双池拖慢启动  
+
+若启动仍明显偏慢（例如单池就 >10s），优先检查：
+
+1. JDBC URL 是否带 `openTelemetry=DISABLED`（Connector/J 9 默认 PREFERRED，配合 Actuator/OTel 会对 IP 做 reverse DNS，单连接可卡数秒）  
+2. 是否误配了与 master 同址的 slave（双池翻倍）  
+3. MySQL 网络 RTT / `skip_name_resolve`；以及是否误开了 Kafka/ES  
 
 登录：
 

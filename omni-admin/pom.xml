@@ -11,12 +11,12 @@
     </parent>
 
     <artifactId>omni-admin</artifactId>
-    <description>启动入口：聚合 system/demo/quartz，产出可运行 fat jar</description>
+    <description>启动入口：聚合 modules/demo/quartz，产出可运行 fat jar</description>
 
     <dependencies>
         <dependency>
             <groupId>com.omni</groupId>
-            <artifactId>omni-system</artifactId>
+            <artifactId>omni-modules</artifactId>
         </dependency>
         <dependency>
             <groupId>com.omni</groupId>

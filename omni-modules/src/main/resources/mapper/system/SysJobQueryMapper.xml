@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysJobQueryMapper">
+
+    <sql id="JobSearchWhere">
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (job_name LIKE CONCAT('%', #{keyword}, '%')
+                OR invoke_target LIKE CONCAT('%', #{keyword}, '%')
+                OR cron_expression LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <sql id="JobColumns">
+        id,
+        job_name AS jobName,
+        job_group AS jobGroup,
+        invoke_target AS invokeTarget,
+        job_params AS jobParams,
+        cron_expression AS cronExpression,
+        misfire_policy AS misfirePolicy,
+        concurrent,
+        status,
+        remark,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+    </sql>
+
+    <select id="countJobs" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_job
+        <include refid="JobSearchWhere"/>
+    </select>
+
+    <select id="listJobs" resultType="com.omni.scaffolding.modules.system.dto.job.JobView">
+        SELECT
+        <include refid="JobColumns"/>
+        FROM sys_job
+        <include refid="JobSearchWhere"/>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.system.dto.job.JobView">
+        SELECT
+        <include refid="JobColumns"/>
+        FROM sys_job
+        WHERE id = #{jobId}
+          AND deleted = 0
+    </select>
+
+    <select id="countLogs" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_job_log
+        WHERE job_id = #{jobId}
+    </select>
+
+    <select id="listLogs" resultType="com.omni.scaffolding.modules.system.dto.job.JobLogView">
+        SELECT id,
+               job_id AS jobId,
+               job_name AS jobName,
+               invoke_target AS invokeTarget,
+               job_params AS jobParams,
+               status,
+               message,
+               start_time AS startTime,
+               end_time AS endTime,
+               cost_ms AS costMs
+        FROM sys_job_log
+        WHERE job_id = #{jobId}
+        ORDER BY start_time DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

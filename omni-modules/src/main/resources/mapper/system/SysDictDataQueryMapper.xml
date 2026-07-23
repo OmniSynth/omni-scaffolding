@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysDictDataQueryMapper">
+
+    <sql id="DataSearchWhere">
+        WHERE d.deleted = 0
+          AND d.type_code = #{typeCode}
+        <if test="keyword != null and keyword != ''">
+            AND (d.label LIKE CONCAT('%', #{keyword}, '%')
+                OR d.value LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </sql>
+
+    <select id="countData" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_dict_data d
+        <include refid="DataSearchWhere"/>
+    </select>
+
+    <select id="listData" resultType="com.omni.scaffolding.modules.system.dto.dict.DictDataView">
+        SELECT d.id,
+               d.type_code AS typeCode,
+               d.label,
+               d.value,
+               d.sort,
+               d.css_class AS cssClass,
+               d.default_flag AS defaultFlag,
+               d.status,
+               d.remark
+        FROM sys_dict_data d
+        <include refid="DataSearchWhere"/>
+        ORDER BY d.sort, d.id
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.system.dto.dict.DictDataView">
+        SELECT d.id,
+               d.type_code AS typeCode,
+               d.label,
+               d.value,
+               d.sort,
+               d.css_class AS cssClass,
+               d.default_flag AS defaultFlag,
+               d.status,
+               d.remark
+        FROM sys_dict_data d
+        WHERE d.id = #{dataId}
+          AND d.deleted = 0
+    </select>
+
+    <select id="listOptions" resultType="com.omni.scaffolding.modules.system.dto.dict.DictOptionView">
+        SELECT d.label,
+               d.value,
+               d.default_flag AS defaultFlag,
+               d.css_class AS cssClass
+        FROM sys_dict_data d
+                 INNER JOIN sys_dict_type t ON t.code = d.type_code AND t.deleted = 0 AND t.status = 1
+        WHERE d.type_code = #{typeCode}
+          AND d.deleted = 0
+          AND d.status = 1
+        ORDER BY d.sort, d.id
+    </select>
+
+    <update id="clearDefaultFlag">
+        UPDATE sys_dict_data
+        SET default_flag = 0
+        WHERE type_code = #{typeCode}
+          AND deleted = 0
+          AND default_flag = 1
+        <if test="excludeId != null">
+            AND id &lt;&gt; #{excludeId}
+        </if>
+    </update>
+</mapper>

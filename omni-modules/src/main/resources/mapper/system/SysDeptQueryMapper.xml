@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysDeptQueryMapper">
+
+    <select id="listAll" resultType="com.omni.scaffolding.modules.system.dto.dept.DeptView">
+        SELECT d.id,
+               d.parent_id AS parentId,
+               d.name,
+               d.sort,
+               d.ancestors,
+               d.status,
+               (SELECT COUNT(1)
+                FROM sys_user u
+                WHERE u.dept_id = d.id
+                  AND u.deleted = 0) AS userCount
+        FROM sys_dept d
+        WHERE d.deleted = 0
+        ORDER BY d.sort, d.id
+    </select>
+
+    <!-- 本部门及 ancestors 包含本部门的子部门；MySQL/H2 通用 -->
+    <select id="findSelfAndChildIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_dept
+        WHERE deleted = 0
+          AND (
+            id = #{deptId}
+                OR CONCAT(',', ancestors, ',') LIKE CONCAT('%,', #{deptId}, ',%')
+            )
+    </select>
+</mapper>

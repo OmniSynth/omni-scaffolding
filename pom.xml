@@ -20,7 +20,7 @@
     <modules>
         <module>omni-common</module>
         <module>omni-framework</module>
-        <module>omni-system</module>
+        <module>omni-modules</module>
         <module>omni-demo</module>
         <module>omni-quartz</module>
         <module>omni-admin</module>
@@ -56,7 +56,7 @@
             </dependency>
             <dependency>
                 <groupId>com.omni</groupId>
-                <artifactId>omni-system</artifactId>
+                <artifactId>omni-modules</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

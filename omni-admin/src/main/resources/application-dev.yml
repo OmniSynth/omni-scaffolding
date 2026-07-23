@@ -1,24 +1,39 @@
 # =============================================================================
 # 开发环境配置（profile=dev）
 # 敏感信息可用环境变量覆盖：DB_* / DB_SLAVE_* / REDIS_*
+#
+# 启动加速约定（实测主因是 Druid 建池）：
+# 1. 默认只注册 master；单库勿再配同址 slave（会再开一整池，白白多十几秒）
+# 2. 连接池 initial-size/min-idle 压到 1；真要读写分离时再加 slave（可 lazy）
+# 3. 日志不要默认 DEBUG（SQL 刷屏也会拖慢启动与热路径）
 # =============================================================================
 
 spring:
   datasource:
     dynamic:
+      # 未配置的数据源名在 strict=false 时回落 primary（见 ReadWriteDataSourceAspect）
+      strict: false
       datasource:
-        # 写库（主）
+        # 写库（主）；Flyway / JPA / Quartz 走此库
         master:
-          url: jdbc:mysql://${DB_HOST:192.168.3.10}:${DB_PORT:40785}/${DB_NAME:omni-scaffolding}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          # openTelemetry=DISABLED：Connector/J 9 默认 PREFERRED，有 OTel API 时会对 IP 做 reverse DNS，单连接可卡数秒
+          url: jdbc:mysql://${DB_HOST:192.168.3.10}:${DB_PORT:40785}/${DB_NAME:omni-scaffolding}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&connectTimeout=3000&socketTimeout=30000&openTelemetry=DISABLED
           username: ${DB_USER:root}
           password: ${DB_PASSWORD:SgQHvsy9M7LWKBCz}
           driver-class-name: com.mysql.cj.jdbc.Driver
-        # 读库（从）；未配 DB_SLAVE_* 时与主库相同，单库可直接启动
-        slave:
-          url: jdbc:mysql://${DB_SLAVE_HOST:${DB_HOST:192.168.3.10}}:${DB_SLAVE_PORT:${DB_PORT:40785}}/${DB_SLAVE_NAME:${DB_NAME:omni-scaffolding}}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-          username: ${DB_SLAVE_USER:${DB_USER:root}}
-          password: ${DB_SLAVE_PASSWORD:${DB_PASSWORD:SgQHvsy9M7LWKBCz}}
-          driver-class-name: com.mysql.cj.jdbc.Driver
+        # 读库（从）：有独立副本时取消注释；lazy=true 表示首次读才建池，不拖慢启动
+        # slave:
+        #   lazy: true
+        #   url: jdbc:mysql://${DB_SLAVE_HOST}:${DB_SLAVE_PORT:3306}/${DB_SLAVE_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&connectTimeout=3000&socketTimeout=30000&openTelemetry=DISABLED
+        #   username: ${DB_SLAVE_USER}
+        #   password: ${DB_SLAVE_PASSWORD}
+        #   driver-class-name: com.mysql.cj.jdbc.Driver
+      druid:
+        # 开发只需预热 1 条连接；公共配置 initial-size=5 在远程库上会明显拖慢启动
+        # 勿开 async-init：Flyway/JPA 启动即取连接，异步建连易触发 max-wait 超时
+        initial-size: 1
+        min-idle: 1
+        max-wait: 10000
 
   data:
     redis:
@@ -27,6 +42,10 @@ spring:
       password: ${REDIS_PASSWORD:123456}
       # Redis 逻辑库索引（0~15）
       database: ${REDIS_DB:1}
+      lettuce:
+        pool:
+          # 开发不必预热多条空闲连接
+          min-idle: 0
 
   jpa:
     # 开发环境打印 SQL，便于对照双轨持久化
@@ -34,15 +53,14 @@ spring:
     hibernate:
       # 仅校验，不自动改表；Schema 变更走 Flyway
       ddl-auto: validate
-
   # Kafka Broker（仅 omni.kafka.enabled=true 时连接）
   kafka:
     bootstrap-servers: ${KAFKA_HOSTS:192.168.6.80}:${KAFKA_PORT:9092}
 
-
 logging:
   level:
-    com.omni.scaffolding: DEBUG
-    org.hibernate.SQL: DEBUG
-    com.baomidou.mybatisplus: DEBUG
-    com.baomidou.dynamic: DEBUG
+    # 需要追 SQL 时临时改为 DEBUG，勿长期开全量 DEBUG
+    com.omni.scaffolding: INFO
+    org.hibernate.SQL: INFO
+    com.baomidou.mybatisplus: INFO
+    com.baomidou.dynamic: INFO

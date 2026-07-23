@@ -80,7 +80,9 @@ spring:
   # ---------- 数据源（主从读写分离 + Druid）----------
   # primary=master：JPA / Flyway / Quartz 默认走主库
   # slave：MyBatis *QueryMapper 复杂读走从库（JPA 读仍走主库，避免复制延迟）
-  # 未单独配置从库时与主库同址即可（单库可跑）；strict=false 时缺从库会回落 master
+  # 单库部署：不要注册与 master 同址的 slave（会再开一整池，启动可多卡十几秒）；
+  #           strict=false 时未配置的 slave 会回落 master（见 application-dev / application-test）
+  # 真从库：在对应 profile 配置 slave，可加 lazy: true 让首次读再建池
   # 注意：虚拟线程再多也不能无脑放大连接池，按 DB max_connections / 实例数校准（主+从各一池）
   datasource:
     dynamic:

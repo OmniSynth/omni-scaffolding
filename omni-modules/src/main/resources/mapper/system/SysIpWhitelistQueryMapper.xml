@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysIpWhitelistQueryMapper">
+
+    <sql id="SearchWhere">
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (ip_addr LIKE CONCAT('%', #{keyword}, '%')
+                OR remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_ip_whitelist
+        <include refid="SearchWhere"/>
+    </select>
+
+    <select id="list" resultType="com.omni.scaffolding.modules.system.dto.ip.IpWhitelistView">
+        SELECT id,
+               ip_addr AS ipAddr,
+               remark,
+               status,
+               created_at AS createdAt,
+               updated_at AS updatedAt
+        FROM sys_ip_whitelist
+        <include refid="SearchWhere"/>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.system.dto.ip.IpWhitelistView">
+        SELECT id,
+               ip_addr AS ipAddr,
+               remark,
+               status,
+               created_at AS createdAt,
+               updated_at AS updatedAt
+        FROM sys_ip_whitelist
+        WHERE id = #{id}
+          AND deleted = 0
+    </select>
+
+    <select id="listEnabledIps" resultType="java.lang.String">
+        SELECT ip_addr
+        FROM sys_ip_whitelist
+        WHERE deleted = 0
+          AND status = 1
+    </select>
+</mapper>

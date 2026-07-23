@@ -9,13 +9,15 @@ spring:
       datasource:
         master:
           # useSSL=true 建议生产开启；证书与网络策略按运维规范调整
-          url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+          # openTelemetry=DISABLED：避免 Connector/J 9 + OTel 对每条连接做 reverse DNS 拖慢建池
+          url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true&connectTimeout=3000&socketTimeout=30000&openTelemetry=DISABLED
           username: ${DB_USER}
           password: ${DB_PASSWORD}
           driver-class-name: com.mysql.cj.jdbc.Driver
         # 从库；未配 DB_SLAVE_* 时与主库同址（单库部署）
+        # 单库请删除本段或勿与 master 同址重复建池；真从库可加 lazy: true
         slave:
-          url: jdbc:mysql://${DB_SLAVE_HOST:${DB_HOST}}:${DB_SLAVE_PORT:${DB_PORT:3306}}/${DB_SLAVE_NAME:${DB_NAME}}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+          url: jdbc:mysql://${DB_SLAVE_HOST:${DB_HOST}}:${DB_SLAVE_PORT:${DB_PORT:3306}}/${DB_SLAVE_NAME:${DB_NAME}}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true&connectTimeout=3000&socketTimeout=30000&openTelemetry=DISABLED
           username: ${DB_SLAVE_USER:${DB_USER}}
           password: ${DB_SLAVE_PASSWORD:${DB_PASSWORD}}
           driver-class-name: com.mysql.cj.jdbc.Driver
