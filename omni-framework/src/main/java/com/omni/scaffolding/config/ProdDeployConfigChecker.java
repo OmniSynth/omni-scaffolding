@@ -68,18 +68,36 @@ public final class ProdDeployConfigChecker {
     }
 
     /**
-     * 执行全部检查；失败时清单只打印一次，异常为短消息（避免堆栈再贴一整份清单）。
+     * 执行全部检查；失败时用 ERROR 打出完整清单（控制台 + 文件），异常用短消息避免堆栈重复贴清单。
      */
     public static void requireValidOrThrow(Environment environment) {
         List<CheckItem> items = evaluate(environment);
         long failCount = items.stream().filter(i -> !i.ok()).count();
         String report = formatReport(items);
         if (failCount > 0) {
-            logReportOnce(report, true);
+            logOpsFailures(items, report);
             throw new IllegalStateException(
-                    "prod 部署配置检查失败，共 " + failCount + " 项不合格，详见上方清单");
+                    "prod 部署配置检查失败，共 " + failCount + " 项不合格，详见上方 [FAIL] 清单");
         }
-        logReportOnce(report, false);
+        if (REPORT_LOGGED.compareAndSet(false, true)) {
+            log.warn("{}", report);
+        }
+    }
+
+    /**
+     * 运维可读：整份清单 + 每条 FAIL 单独一行，方便在控制台 / 日志里搜。
+     */
+    private static void logOpsFailures(List<CheckItem> items, String report) {
+        if (!REPORT_LOGGED.compareAndSet(false, true)) {
+            return;
+        }
+        log.error("{}", report);
+        for (CheckItem item : items) {
+            if (!item.ok()) {
+                log.error("[部署配置错误] {} — {}", item.name(), item.detail());
+            }
+        }
+        log.error("[部署配置错误] 请按上方全部 [FAIL] 一次性改完环境变量后重新发布（不要只改一项）");
     }
 
     /**
@@ -168,17 +186,6 @@ public final class ProdDeployConfigChecker {
         }
         sb.append("==============================================================\n");
         return sb.toString();
-    }
-
-    private static void logReportOnce(String report, boolean error) {
-        if (!REPORT_LOGGED.compareAndSet(false, true)) {
-            return;
-        }
-        if (error) {
-            log.error("{}", report);
-        } else {
-            log.warn("{}", report);
-        }
     }
 
     private static boolean containsProd(String active) {

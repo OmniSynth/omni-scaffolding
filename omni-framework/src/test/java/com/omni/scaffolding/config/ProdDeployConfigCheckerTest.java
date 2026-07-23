@@ -58,8 +58,8 @@ class ProdDeployConfigCheckerTest {
         assertThatThrownBy(() -> ProdDeployConfigChecker.requireValidOrThrow(env))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("共 2 项不合格")
-                .hasMessageContaining("详见上方清单")
-                .hasMessageNotContaining("[FAIL]");
+                .hasMessageContaining("[FAIL]")
+                .hasMessageNotContaining("OMNI_JWT_SECRET —");
     }
 
     @Test

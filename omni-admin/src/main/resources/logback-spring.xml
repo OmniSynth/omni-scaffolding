@@ -31,23 +31,9 @@
         </encoder>
     </appender>
 
-    <springProfile name="prod">
-        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                <customFields>{"application":"${appName}"}</customFields>
-                <includeMdcKeyName>traceId</includeMdcKeyName>
-            </encoder>
-        </appender>
-        <root level="INFO">
-            <appender-ref ref="JSON_CONSOLE"/>
-            <appender-ref ref="FILE"/>
-        </root>
-    </springProfile>
-
-    <springProfile name="!prod">
-        <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE"/>
-        </root>
-    </springProfile>
+    <!-- prod / 非 prod：控制台 + 文件都打，运维看 Jenkins 控制台或 omni-scaffolding.log 均可 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
 </configuration>
