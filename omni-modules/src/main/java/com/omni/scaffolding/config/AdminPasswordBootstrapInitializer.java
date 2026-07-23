@@ -52,7 +52,14 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
             boolean stillDemo = DEMO_PASSWORDS.stream()
                     .anyMatch(demo -> passwordEncoder.matches(demo, admin.getPasswordHash()));
             if (!stillDemo) {
-                log.info("Admin 密码已非演示口令，跳过 bootstrap");
+                log.warn("""
+
+                        ========== admin 密码未改动 ==========
+                        库中 admin 已不是演示口令，跳过 OMNI_ADMIN_INITIAL_PASSWORD 写入。
+                        登录请仍用「上次成功初始化时」的 OMNI_ADMIN_INITIAL_PASSWORD，
+                        或由已登录管理员在系统里重置；不要用 admin123 / OMNI_SIGN_SECRET。
+                        ======================================
+                        """);
                 return;
             }
             String encoded = passwordEncoder.encode(passwordToSet);
@@ -62,9 +69,22 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
             if (!passwordEncoder.matches(passwordToSet, encoded)) {
                 throw new IllegalStateException("admin 密码 bootstrap 自检失败：编码结果与明文不匹配");
             }
-            log.warn(
-                    "已将演示 admin 密码替换为 OMNI_ADMIN_INITIAL_PASSWORD（长度={}），请用该环境变量登录，不要用页面默认的 admin123",
-                    passwordToSet.length());
-        }, () -> log.warn("未找到 admin 用户，跳过密码 bootstrap"));
+            log.warn("""
+
+                    ========== admin 密码已初始化 ==========
+                    用户名           : admin
+                    密码来源         : 环境变量 OMNI_ADMIN_INITIAL_PASSWORD（明文长度={}）
+                    请用上述环境变量的值登录
+                    禁止使用         : admin123 / 123456 / OMNI_SIGN_SECRET
+                    登录后请尽快改密
+                    ========================================
+                    """, passwordToSet.length());
+        }, () -> log.error("""
+
+                ========== [部署异常] 未找到 admin 用户 ==========
+                库中无 username=admin 且 deleted=0 的账号，无法完成密码 bootstrap。
+                请检查 Flyway 是否执行、DB_NAME 是否连对。
+                ================================================
+                """));
     }
 }

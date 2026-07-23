@@ -91,7 +91,6 @@ onMounted(loadCaptcha)
   <div class="login-page">
     <div class="panel">
       <h1>Omni Admin</h1>
-      <p class="hint">本地默认 admin / admin123；生产请用部署时的初始密码</p>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="onSubmit">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" autocomplete="username" />
@@ -138,14 +137,9 @@ onMounted(loadCaptcha)
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
 }
 h1 {
-  margin: 0 0 8px;
+  margin: 0 0 24px;
   font-size: 28px;
   color: #0f172a;
-}
-.hint {
-  margin: 0 0 24px;
-  color: #64748b;
-  font-size: 13px;
 }
 .submit {
   width: 100%;

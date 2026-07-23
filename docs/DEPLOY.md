@@ -62,7 +62,7 @@ Jenkins 示例使用 **`dev` profile**（[`application-dev.yml`](../omni-admin/s
 | `DB_USER` / `DB_PASSWORD` | 否* | `root` / `SgQHvsy9M7LWKBCz` | 同上 |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | 否* | `192.168.3.10` / `40782` / `123456` | 同上 |
 | `REDIS_DB` | 否 | `1` | `dev` 默认 `1` |
-| `OMNI_SIGN_SECRET` | 建议 | 见脚本 | 须与前端 `VITE_OMNI_SIGN_SECRET` 一致；不设则用 `application.yml` 默认 |
+| `OMNI_SIGN_SECRET` | 建议 | 见脚本 | 须与前端 `VITE_OMNI_SIGN_SECRET` 一致；**禁止** `admin123`/`123456`，且不能与 `OMNI_ADMIN_INITIAL_PASSWORD` 相同（`prod` 启动会直接失败并打中文原因） |
 | `OMNI_CORS_ORIGINS` | 建议 | `https://omni-scaffolding.irez.cn` | `dev` 已有该默认；改域名时请覆盖 |
 
 \* `dev` 可不 export，直接吃 yml 默认；脚本里显式写出便于对照与排障。
