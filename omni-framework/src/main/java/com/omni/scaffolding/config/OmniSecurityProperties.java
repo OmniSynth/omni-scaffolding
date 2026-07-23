@@ -66,6 +66,12 @@ public class OmniSecurityProperties {
      */
     private Cors cors = new Cors();
 
+    /**
+     * 启动时写入 admin 的初始密码（环境变量 {@code OMNI_ADMIN_INITIAL_PASSWORD}）。
+     * 为空则跳过；非空时仅当当前仍为演示口令才更新。
+     */
+    private String bootstrapAdminPassword;
+
     @Data
     public static class Jwt {
         /**

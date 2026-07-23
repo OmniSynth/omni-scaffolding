@@ -267,6 +267,9 @@ omni:
       secret: ${OMNI_JWT_SECRET:omni-scaffolding-dev-secret-change-me-32bytes!!}
       # Token 过期时间（毫秒），默认 24h
       expiration-ms: ${OMNI_JWT_EXPIRATION_MS:86400000}
+    # 可选：启动时若 admin 仍为演示密码则替换为该值（Jenkins/部署用 OMNI_ADMIN_INITIAL_PASSWORD）
+    # 本地默认空=不改；生产见 application-prod.yml（必填）；dev 见 application-dev.yml
+    bootstrap-admin-password: ${OMNI_ADMIN_INITIAL_PASSWORD:}
     # @IpWhitelist 兜底 IP 列表（优先 sys_ip_whitelist 表；表空时才用本配置）
     ip-whitelist: ${OMNI_SECURITY_IP_WHITELIST:127.0.0.1,0:0:0:0:0:0:0:1}
     # CORS：浏览器会带 Origin（含 nginx 同源反代）；生产请在 application-prod 覆盖为站点域名

@@ -60,6 +60,8 @@ spring:
 # Nginx 站点联调时放行浏览器 Origin（可被 OMNI_CORS_ORIGINS 覆盖）
 omni:
   security:
+    # 本地/dev 默认初始密码（仍为演示口令时启动会写入）；可用环境变量覆盖
+    bootstrap-admin-password: ${OMNI_ADMIN_INITIAL_PASSWORD:OmniDemo@2026!}
     cors:
       allowed-origin-patterns:
         - http://localhost:*
