@@ -37,12 +37,14 @@ public class ProductionAdminPasswordInitializer implements ApplicationRunner {
             throw new IllegalStateException("OMNI_ADMIN_INITIAL_PASSWORD 至少 12 位且不能使用演示密码");
         }
 
-        userRepository.findByUsernameAndDeleted("admin", 0).ifPresent(admin -> {
-            if (passwordEncoder.matches(DEMO_PASSWORD, admin.getPasswordHash())) {
-                admin.setPasswordHash(passwordEncoder.encode(initialPassword));
-                userRepository.save(admin);
-                log.warn("Replaced the default production admin password; rotate it after first login");
+        userRepository.findByUsernameAndDeleted("admin", 0).ifPresentOrElse(admin -> {
+            if (!passwordEncoder.matches(DEMO_PASSWORD, admin.getPasswordHash())) {
+                log.info("Admin password already customized; skip OMNI_ADMIN_INITIAL_PASSWORD bootstrap");
+                return;
             }
-        });
+            admin.setPasswordHash(passwordEncoder.encode(initialPassword));
+            userRepository.save(admin);
+            log.warn("Replaced the default production admin password; rotate it after first login");
+        }, () -> log.warn("Admin user not found; skip OMNI_ADMIN_INITIAL_PASSWORD bootstrap"));
     }
 }

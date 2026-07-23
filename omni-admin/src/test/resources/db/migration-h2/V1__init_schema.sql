@@ -49,7 +49,7 @@ CREATE TABLE demo_product (
 );
 
 INSERT INTO sys_user (id, username, password_hash, nickname, real_name, mobile, email, gender, avatar, dept_id, enabled, deleted, created_at, updated_at, version)
-VALUES (1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Administrator', '系统管理员', '13800000001', 'admin@omni.local', 'MALE', NULL, 1, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+VALUES (1, 'admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', 'Administrator', '系统管理员', '13800000001', 'admin@omni.local', 'MALE', NULL, 1, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
 
 INSERT INTO sys_role (id, code, name, data_scope, status, deleted, created_at, updated_at, version)
 VALUES (1, 'ADMIN', 'Administrator', 'ALL', TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
@@ -147,9 +147,9 @@ INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 
 INSERT INTO sys_user (id, username, password_hash, nickname, real_name, mobile, email, gender, avatar, dept_id, enabled, deleted, created_at, updated_at, version)
 VALUES
-    (2, 'rd_mgr', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '研发经理', '研发经理', '13800000002', 'rd_mgr@omni.local', 'MALE', NULL, 2, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0),
-    (3, 'sales1', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '销售甲', '销售甲', '13800000003', 'sales1@omni.local', 'FEMALE', NULL, 3, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0),
-    (4, 'rd_dev', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '研发开发', '研发开发', '13800000004', 'rd_dev@omni.local', 'MALE', NULL, 2, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
+    (2, 'rd_mgr', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '研发经理', '研发经理', '13800000002', 'rd_mgr@omni.local', 'MALE', NULL, 2, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0),
+    (3, 'sales1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '销售甲', '销售甲', '13800000003', 'sales1@omni.local', 'FEMALE', NULL, 3, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0),
+    (4, 'rd_dev', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '研发开发', '研发开发', '13800000004', 'rd_dev@omni.local', 'MALE', NULL, 2, TRUE, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0);
 
 INSERT INTO sys_user_role (user_id, role_id) VALUES (2, 2), (3, 3), (4, 3);
 
