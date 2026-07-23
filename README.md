@@ -518,7 +518,7 @@ spring:
 
 ## 前端（omni-web）
 
-管理端：Vue 3 + Vite + TypeScript + Element Plus。覆盖登录、动态菜单、按钮级权限（`v-permission`），以及用户/角色/部门/菜单/岗位/字典/参数/公告/文件/定时任务/IP 白名单、运维页、代码生成等。
+管理端：Vue 3 + Vite + TypeScript + Element Plus。覆盖登录、动态菜单、按钮级权限（`v-permission`）、**首页工作台**（快捷入口 + 未读公告 + 可选运行态），以及用户/角色/部门/菜单/岗位/字典/参数/公告/文件/定时任务/IP 白名单、运维页、代码生成等。
 
 演示账号（密码均为 `admin123`）：
 

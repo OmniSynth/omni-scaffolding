@@ -2,7 +2,20 @@
 
 Omni Scaffolding 管理端前端：Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router + Axios。
 
-当前范围：登录鉴权、动态菜单、按钮级权限（`v-permission`）、系统管理（用户/角色/部门/菜单）、运维联调页（Kafka / Elasticsearch）。不含 Quartz UI。
+当前范围：登录鉴权、动态菜单、按钮级权限（`v-permission`）、**首页工作台**、系统管理（用户/角色/部门/菜单/岗位/字典/参数/公告/文件/定时任务/IP 白名单）、运维页、代码生成等。
+
+## 首页工作台
+
+登录后默认进入 `/home`，包含：
+
+| 区块 | 说明 |
+|------|------|
+| 问候与身份 | 昵称、数据范围、角色；权限码详情请到个人中心查看 |
+| 快捷入口 | 按菜单 `*:list` 权限过滤（无权限不显示） |
+| 未读公告 | 复用 `/system/notices/unread`（仅需登录） |
+| 运行态 | 有 `ops:server:query` 时展示 JVM 堆 / 数据源 / Redis 摘要 |
+
+不造假业务大盘指标；完整运维细节仍在「系统详情」等运维页。
 
 ## 环境
 
@@ -39,3 +52,5 @@ npm run preview
 | ES 搜索 | 同上 | `demo:product:read` |
 
 未开启对应能力时接口返回 404，页面会提示开启开关。
+
+二次开发规范见仓库根目录 [AGENTS.md](../AGENTS.md)。
