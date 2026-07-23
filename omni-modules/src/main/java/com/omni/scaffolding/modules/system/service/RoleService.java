@@ -148,7 +148,8 @@ public class RoleService {
         role.setDataScope(request.getDataScope().trim().toUpperCase());
         role.setStatus(Boolean.TRUE.equals(request.getStatus()));
         role.setDeleted(0);
-        roleRepository.save(role);
+        // 须 flush：随后 MyBatis 写 sys_role_menu，未落库会触发外键失败
+        roleRepository.saveAndFlush(role);
         replaceMenus(role.getId(), request.getMenuIds());
         permissionCacheEvictor.evictAll();
         return detail(role.getId());
@@ -180,7 +181,7 @@ public class RoleService {
         role.setName(request.getName().trim());
         role.setDataScope(request.getDataScope().trim().toUpperCase());
         role.setStatus(status);
-        roleRepository.save(role);
+        roleRepository.saveAndFlush(role);
         replaceMenus(roleId, request.getMenuIds());
         permissionCacheEvictor.evictAll();
         return detail(roleId);
@@ -201,7 +202,7 @@ public class RoleService {
         SysRole role = roleRepository.findByIdAndDeleted(roleId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "角色不存在"));
         role.setStatus(status);
-        roleRepository.save(role);
+        roleRepository.saveAndFlush(role);
         permissionCacheEvictor.evictAll();
         return detail(roleId);
     }
@@ -222,7 +223,7 @@ public class RoleService {
             throw new BusinessException(ErrorCode.CONFLICT, "角色已分配给用户，无法删除");
         }
         role.setDeleted(1);
-        roleRepository.save(role);
+        roleRepository.saveAndFlush(role);
         roleQueryMapper.deleteRoleMenus(roleId);
         permissionCacheEvictor.evictAll();
     }

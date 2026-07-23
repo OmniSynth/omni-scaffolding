@@ -118,7 +118,8 @@ public class DictService {
         type.setSort(request.getSort());
         type.setStatus(Boolean.TRUE.equals(request.getStatus()));
         type.setDeleted(0);
-        dictTypeRepository.save(type);
+        // 须 flush：随后 MyBatis 读详情，未刷盘会读不到
+        dictTypeRepository.saveAndFlush(type);
         return getType(type.getId());
     }
 
@@ -142,7 +143,7 @@ public class DictService {
         type.setRemark(blankToNull(request.getRemark()));
         type.setSort(request.getSort());
         type.setStatus(Boolean.TRUE.equals(request.getStatus()));
-        dictTypeRepository.save(type);
+        dictTypeRepository.saveAndFlush(type);
         return getType(typeId);
     }
 
@@ -159,7 +160,7 @@ public class DictService {
         SysDictType type = dictTypeRepository.findByIdAndDeleted(typeId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "字典类型不存在"));
         type.setStatus(status);
-        dictTypeRepository.save(type);
+        dictTypeRepository.saveAndFlush(type);
         return getType(typeId);
     }
 
@@ -258,7 +259,7 @@ public class DictService {
         data.setId(IdGenerator.nextId());
         applyData(data, request, typeCode, value);
         data.setDeleted(0);
-        dictDataRepository.save(data);
+        dictDataRepository.saveAndFlush(data);
         return getData(data.getId());
     }
 
@@ -288,7 +289,7 @@ public class DictService {
             dictDataQueryMapper.clearDefaultFlag(typeCode, dataId);
         }
         applyData(data, request, typeCode, value);
-        dictDataRepository.save(data);
+        dictDataRepository.saveAndFlush(data);
         return getData(dataId);
     }
 
@@ -305,7 +306,7 @@ public class DictService {
         SysDictData data = dictDataRepository.findByIdAndDeleted(dataId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "字典数据不存在"));
         data.setStatus(status);
-        dictDataRepository.save(data);
+        dictDataRepository.saveAndFlush(data);
         return getData(dataId);
     }
 

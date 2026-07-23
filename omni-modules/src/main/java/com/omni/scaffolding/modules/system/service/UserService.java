@@ -97,7 +97,8 @@ public class UserService {
         user.setDeptId(request.getDeptId());
         user.setEnabled(request.getEnabled() == null || request.getEnabled());
         user.setDeleted(0);
-        userRepository.save(user);
+        // 须 flush：随后 MyBatis 写 sys_user_role/post，未落库会触发外键失败
+        userRepository.saveAndFlush(user);
         replaceRoles(user.getId(), request.getRoleIds());
         replacePosts(user.getId(), request.getPostIds());
         permissionCacheEvictor.evictUser(user.getId());
@@ -133,7 +134,7 @@ public class UserService {
                 request.getAvatarFileId());
         user.setDeptId(request.getDeptId());
         user.setEnabled(request.getEnabled());
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
         replaceRoles(userId, request.getRoleIds());
         replacePosts(userId, request.getPostIds());
         permissionCacheEvictor.evictUser(userId);
@@ -161,7 +162,7 @@ public class UserService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "不能停用当前登录用户");
         }
         user.setEnabled(enabled);
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
         permissionCacheEvictor.evictUser(userId);
         return requireDetail(userId);
     }
@@ -185,7 +186,7 @@ public class UserService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "不能删除当前登录用户");
         }
         user.setDeleted(1);
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
         userQueryMapper.deleteUserRoles(userId);
         userQueryMapper.deleteUserPosts(userId);
         permissionCacheEvictor.evictUser(userId);

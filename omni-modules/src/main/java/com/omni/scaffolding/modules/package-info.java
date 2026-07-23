@@ -13,6 +13,7 @@
  *   <li><b>复杂读走 MyBatis</b>（{@code mapper} + XML / DTO）：多表 join、动态条件、聚合统计</li>
  *   <li>同一业务表不要两边随意混写，避免事务语义与缓存不一致</li>
  *   <li>JPA Entity 与 MyBatis 查询 DTO 分离，复杂查询结果不要强行复用 Entity</li>
+ *   <li><b>JPA 写后若同事务内立刻 MyBatis 读/写关联</b>，必须 {@code saveAndFlush}（否则未刷盘会导致读空或外键失败）</li>
  * </ol>
  */
 package com.omni.scaffolding.modules;

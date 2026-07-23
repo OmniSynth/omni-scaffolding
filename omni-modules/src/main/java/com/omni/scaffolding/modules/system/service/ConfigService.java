@@ -121,7 +121,8 @@ public class ConfigService {
         applyMutable(config, request);
         config.setBuiltin(false);
         config.setDeleted(0);
-        configRepository.save(config);
+        // 须 flush：随后 MyBatis 读详情，未刷盘会读不到
+        configRepository.saveAndFlush(config);
         return detail(config.getId());
     }
 
@@ -150,7 +151,7 @@ public class ConfigService {
             config.setConfigKey(newKey);
         }
         applyMutable(config, request);
-        configRepository.save(config);
+        configRepository.saveAndFlush(config);
         return detail(configId);
     }
 
@@ -167,7 +168,7 @@ public class ConfigService {
         SysConfig config = configRepository.findByIdAndDeleted(configId, 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "系统参数不存在"));
         config.setStatus(status);
-        configRepository.save(config);
+        configRepository.saveAndFlush(config);
         return detail(configId);
     }
 

@@ -59,7 +59,8 @@ public class MenuService {
         menu.setId(IdGenerator.nextId());
         apply(menu, request);
         menu.setDeleted(0);
-        menuRepository.save(menu);
+        // 须 flush：随后 MyBatis 读节点，未刷盘会读不到
+        menuRepository.saveAndFlush(menu);
         permissionCacheEvictor.evictAll();
         return findNode(menu.getId());
     }
@@ -84,7 +85,7 @@ public class MenuService {
                     .orElseThrow(() -> new BusinessException(ErrorCode.BAD_REQUEST, "上级菜单不存在"));
         }
         apply(menu, request);
-        menuRepository.save(menu);
+        menuRepository.saveAndFlush(menu);
         permissionCacheEvictor.evictAll();
         return findNode(menuId);
     }

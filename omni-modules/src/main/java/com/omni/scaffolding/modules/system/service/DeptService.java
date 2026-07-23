@@ -115,7 +115,8 @@ public class DeptService {
         dept.setAncestors(ancestors);
         dept.setStatus(request.getStatus());
         dept.setDeleted(0);
-        deptRepository.save(dept);
+        // 须 flush：随后 MyBatis 读详情，未刷盘会读不到
+        deptRepository.saveAndFlush(dept);
         return findView(dept.getId());
     }
 
@@ -142,7 +143,7 @@ public class DeptService {
         dept.setSort(request.getSort());
         dept.setAncestors(ancestors);
         dept.setStatus(request.getStatus());
-        deptRepository.save(dept);
+        deptRepository.saveAndFlush(dept);
         return findView(deptId);
     }
 

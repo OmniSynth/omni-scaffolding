@@ -109,7 +109,8 @@ public class PostService {
         post.setId(IdGenerator.nextId());
         apply(post, request);
         post.setDeleted(0);
-        postRepository.save(post);
+        // 须 flush：随后 MyBatis 读详情，未刷盘会读不到
+        postRepository.saveAndFlush(post);
         return detail(post.getId());
     }
 
@@ -130,7 +131,7 @@ public class PostService {
             }
         });
         apply(post, request);
-        postRepository.save(post);
+        postRepository.saveAndFlush(post);
         return detail(postId);
     }
 
