@@ -60,8 +60,9 @@ spring:
 # Nginx 站点联调时放行浏览器 Origin（可被 OMNI_CORS_ORIGINS 覆盖）
 omni:
   security:
-    # 本地/dev 默认初始密码（仍为演示口令时启动会写入）；可用环境变量覆盖
-    bootstrap-admin-password: ${OMNI_ADMIN_INITIAL_PASSWORD:OmniDemo@2026!}
+    # 未设 OMNI_ADMIN_INITIAL_PASSWORD 时保留 Flyway 种子 admin/admin123；
+    # 设了则仅当仍为演示口令时由 AdminPasswordBootstrapInitializer 替换（不改 V1 SQL）
+    bootstrap-admin-password: ${OMNI_ADMIN_INITIAL_PASSWORD:}
     cors:
       allowed-origin-patterns:
         - http://localhost:*

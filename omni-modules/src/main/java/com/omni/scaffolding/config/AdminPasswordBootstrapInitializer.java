@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,22 +18,30 @@ import java.util.List;
  * 按配置/环境变量初始化 admin 登录密码（部署可自定义）。
  *
  * <p>读取 {@code omni.security.bootstrap-admin-password}（通常由
- * {@code OMNI_ADMIN_INITIAL_PASSWORD} 注入）。未配置则跳过。
+ * {@code OMNI_ADMIN_INITIAL_PASSWORD} 注入）。未配置则跳过，保留 Flyway V1 种子
+ * （明文 {@code admin123}）。
  *
- * <p>仅当库中密码仍为演示口令时替换（含历史错误种子 {@code 123456}），
- * 避免覆盖管理员自行改密。
+ * <p>仅当库中密码仍为演示口令时替换（{@code admin123} / 历史错误种子 {@code 123456}），
+ * 避免覆盖管理员自行改密。须在 {@link AdminPasswordInitializer} 之后执行。
+ *
+ * <p>密码不合规时不会只抛单行错误，而是复跑 {@link ProdDeployConfigChecker} 一次列出全部项。
  */
 @Slf4j
 @Component
+@Order(AdminPasswordBootstrapInitializer.ORDER)
 @RequiredArgsConstructor
 public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
 
-    /** 文档约定演示密码；以及 V1 历史错误种子对应明文 */
+    /** 晚于 {@link AdminPasswordInitializer}，避免被改回 admin123 */
+    public static final int ORDER = 200;
+
+    /** 与 V1 种子及历史错误种子对应的明文 */
     private static final List<String> DEMO_PASSWORDS = List.of("admin123", "123456");
 
     private final SysUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OmniSecurityProperties securityProperties;
+    private final Environment environment;
 
     @Override
     @Transactional
@@ -43,8 +53,11 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
         }
         initialPassword = initialPassword.trim();
         if (initialPassword.length() < 12 || DEMO_PASSWORDS.contains(initialPassword)) {
-            throw new IllegalStateException(
-                    "OMNI_ADMIN_INITIAL_PASSWORD 至少 12 位，且不能使用演示密码 admin123 / 123456");
+            // 早期预检若被跳过或未绑定全量属性：这里一次性打出全部配置项
+            String report = ProdDeployConfigChecker.formatReport(ProdDeployConfigChecker.evaluate(environment));
+            System.err.println(report);
+            log.error(report);
+            throw new IllegalStateException(report);
         }
 
         String passwordToSet = initialPassword;
@@ -64,7 +77,6 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
             }
             String encoded = passwordEncoder.encode(passwordToSet);
             admin.setPasswordHash(encoded);
-            // 同事务内立刻可被后续读路径看到；避免仅 save 未 flush 的边界情况
             userRepository.saveAndFlush(admin);
             if (!passwordEncoder.matches(passwordToSet, encoded)) {
                 throw new IllegalStateException("admin 密码 bootstrap 自检失败：编码结果与明文不匹配");
