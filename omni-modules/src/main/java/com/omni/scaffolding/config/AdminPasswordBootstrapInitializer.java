@@ -52,11 +52,10 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
             return;
         }
         initialPassword = initialPassword.trim();
-        if (initialPassword.length() < 12 || DEMO_PASSWORDS.contains(initialPassword)) {
+        if (initialPassword.length() < 12) {
             // 清单只由 Checker 打印一次；异常用短消息，避免与 Spring 堆栈重复
             ProdDeployConfigChecker.requireValidOrThrow(environment);
-            throw new IllegalStateException(
-                    "OMNI_ADMIN_INITIAL_PASSWORD 不合规（至少 12 位，且不能为 admin123/123456）");
+            throw new IllegalStateException("OMNI_ADMIN_INITIAL_PASSWORD 不合规（至少 12 位）");
         }
 
         String passwordToSet = initialPassword;
@@ -69,7 +68,7 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
                         ========== admin 密码未改动 ==========
                         库中 admin 已不是演示口令，跳过 OMNI_ADMIN_INITIAL_PASSWORD 写入。
                         登录请仍用「上次成功初始化时」的 OMNI_ADMIN_INITIAL_PASSWORD，
-                        或由已登录管理员在系统里重置；不要用 admin123 / OMNI_SIGN_SECRET。
+                        或由已登录管理员在系统里重置；不要与 OMNI_SIGN_SECRET 搞混。
                         ======================================
                         """);
                 return;
@@ -86,7 +85,7 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
                     用户名           : admin
                     密码来源         : 环境变量 OMNI_ADMIN_INITIAL_PASSWORD（明文长度={}）
                     请用上述环境变量的值登录
-                    禁止使用         : admin123 / 123456 / OMNI_SIGN_SECRET
+                    禁止使用         : OMNI_SIGN_SECRET（那是加签密钥）
                     登录后请尽快改密
                     ========================================
                     """, passwordToSet.length());

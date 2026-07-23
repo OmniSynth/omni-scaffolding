@@ -62,7 +62,7 @@ Jenkins 示例使用 **`dev` profile**（[`application-dev.yml`](../omni-admin/s
 | `DB_USER` / `DB_PASSWORD` | 否* | `root` / `SgQHvsy9M7LWKBCz` | 同上 |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | 否* | `192.168.3.10` / `40782` / `123456` | 同上 |
 | `REDIS_DB` | 否 | `1` | `dev` 默认 `1` |
-| `OMNI_SIGN_SECRET` | 建议 | 见脚本 | 须与前端 `VITE_OMNI_SIGN_SECRET` 一致；**禁止** `admin123`/`123456`，且不能与 `OMNI_ADMIN_INITIAL_PASSWORD` 相同（`prod` 启动会直接失败并打中文原因） |
+| `OMNI_SIGN_SECRET` | 建议 | 见脚本 | 须与前端 `VITE_OMNI_SIGN_SECRET` 一致；至少 8 位，且不能与 `OMNI_ADMIN_INITIAL_PASSWORD` 相同 |
 | `OMNI_CORS_ORIGINS` | 建议 | `https://omni-scaffolding.irez.cn` | `dev` 已有该默认；改域名时请覆盖 |
 
 \* `dev` 可不 export，直接吃 yml 默认；脚本里显式写出便于对照与排障。
@@ -154,56 +154,49 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ---
 
-## 6. Jenkins 一键部署脚本（前后端 · `dev`）
+## 6. Jenkins 一键部署脚本（前后端 · `prod`）
 
-在 Jenkins Freestyle / Pipeline shell 中于**仓库根目录**执行。使用 `--spring.profiles.active=dev`，DB/Redis 对齐 [`application-dev.yml`](../omni-admin/src/main/resources/application-dev.yml)。
+在 Jenkins Freestyle / Pipeline shell 中于**仓库根目录**执行。使用 `--spring.profiles.active=prod`。
+日志只走 Logback（`logback-spring.xml` → `/root/.logs/omni-scaffolding/prod/omni-scaffolding.log`），不要把业务清单打到 `System.out`。
 
 ```bash
 #!/bin/bash
 set -euo pipefail
 
-# ========== 1. 运行参数（对齐 application-dev.yml 默认值，可按需覆盖）==========
+# ========== 1. 运行参数 ==========
 export SERVER_PORT=8322
-export DB_HOST=192.168.3.10
-export DB_PORT=40785
+export DB_HOST=172.16.1.4
+export DB_PORT=3306
 export DB_NAME=omni-scaffolding
-export DB_USER=root
-export DB_PASSWORD='SgQHvsy9M7LWKBCz'
-# dev 默认只注册 master，不要配同址 DB_SLAVE_*
+export DB_USER=omni
+export DB_PASSWORD=123456
+# 单库：不要配同址 slave
 
-export REDIS_HOST=192.168.3.10
-export REDIS_PORT=40782
-export REDIS_PASSWORD='123456'
-export REDIS_DB=1
+export REDIS_HOST=172.16.1.4
+export REDIS_PORT=6379
+export REDIS_PASSWORD=123456
 
-# 与 application.yml 默认 Sign 一致；前端构建须同源
-export OMNI_SIGN_SECRET='aS0mF6xP5mX3zS9hX0kN8gR2nC6iI8rC'
-# JWT ≥32；prod 必填。dev 不设时会吃 application.yml 默认，这里显式写出避免漏配
-export OMNI_JWT_SECRET='vWcunHYLV2yGl9xQsjbpBJk8MRT0N7Sg'
-# admin 登录密码（prod 首次启动写入库）；不要与 SIGN 相同，禁止 admin123
+# 登录密码（≥12）；与 SIGN 必须不同
 export OMNI_ADMIN_INITIAL_PASSWORD='OmniDemo@2026!'
-# 与浏览器地址栏一致（dev 已有默认，显式写出便于排障）
+# JWT ≥32 字节
+export OMNI_JWT_SECRET='vWcunHYLV2yGl9xQsjbpBJk8MRT0N7Sg'
+# 加签密钥（≥8）；须与前端 VITE_OMNI_SIGN_SECRET 一致
+export OMNI_SIGN_SECRET='aS0mF6xP5mX3zS9hX0kN8gR2nC6iI8rC'
 export OMNI_CORS_ORIGINS='https://omni-scaffolding.irez.cn'
 
-# ========== 1.1 密钥预检（失败则不必启动 Java）==========
+# ========== 1.1 密钥预检（失败则不必编译/启动）==========
 : "${OMNI_JWT_SECRET:?OMNI_JWT_SECRET 未设置}"
 : "${OMNI_SIGN_SECRET:?OMNI_SIGN_SECRET 未设置}"
 : "${OMNI_CORS_ORIGINS:?OMNI_CORS_ORIGINS 未设置}"
 : "${OMNI_ADMIN_INITIAL_PASSWORD:?OMNI_ADMIN_INITIAL_PASSWORD 未设置}"
 if [ "${#OMNI_JWT_SECRET}" -lt 32 ]; then
-  echo "错误: OMNI_JWT_SECRET 至少 32 字符/字节，当前=${#OMNI_JWT_SECRET}。生成: openssl rand -base64 32" >&2
+  echo "错误: OMNI_JWT_SECRET 至少 32 字节，当前=${#OMNI_JWT_SECRET}。生成: openssl rand -base64 32" >&2
   exit 1
 fi
 if [ "${#OMNI_SIGN_SECRET}" -lt 8 ]; then
   echo "错误: OMNI_SIGN_SECRET 至少 8 位，当前=${#OMNI_SIGN_SECRET}" >&2
   exit 1
 fi
-case "${OMNI_SIGN_SECRET}" in
-  admin123|123456)
-    echo "错误: OMNI_SIGN_SECRET 禁止使用 admin123/123456（易与登录密码混淆）" >&2
-    exit 1
-    ;;
-esac
 if [ "${OMNI_SIGN_SECRET}" = "${OMNI_ADMIN_INITIAL_PASSWORD}" ]; then
   echo "错误: OMNI_SIGN_SECRET 不能与 OMNI_ADMIN_INITIAL_PASSWORD 相同" >&2
   exit 1
@@ -212,15 +205,10 @@ if [ "${#OMNI_ADMIN_INITIAL_PASSWORD}" -lt 12 ]; then
   echo "错误: OMNI_ADMIN_INITIAL_PASSWORD 至少 12 位，当前=${#OMNI_ADMIN_INITIAL_PASSWORD}" >&2
   exit 1
 fi
-case "${OMNI_ADMIN_INITIAL_PASSWORD}" in
-  admin123|123456)
-    echo "错误: OMNI_ADMIN_INITIAL_PASSWORD 不能使用演示密码 admin123/123456" >&2
-    exit 1
-    ;;
-esac
 
 WEB_DEPLOY_DIR=/var/www/html/omni-scaffolding
 JAR_NAME=omni-admin-1.0.0-SNAPSHOT.jar
+LOG_DIR=/root/.logs/omni-scaffolding/prod
 
 # ========== 2. JDK / Maven ==========
 export JAVA_HOME=/usr/local/jdk-21.0.7
@@ -261,7 +249,7 @@ cd ..
 echo "Maven 打包..."
 mvn clean package -Dmaven.test.skip=true
 
-# ========== 5. 重启 jar（profile=dev）==========
+# ========== 5. 重启 jar ==========
 cd omni-admin/target
 
 pid="$(ps -ef | grep "${JAR_NAME}" | grep -v grep | awk '{print $2}' || true)"
@@ -269,15 +257,34 @@ if [ -z "${pid}" ]; then
   echo "进程不存在"
 else
   echo "停止进程 ${pid}"
-  kill -9 "${pid}"
+  # shellcheck disable=SC2086
+  kill -9 ${pid}
 fi
 
-# Jenkins 默认会杀子进程；BUILD_ID=dontKillMe 避免 nohup 被收割
+mkdir -p "${LOG_DIR}"
+
+JAVA_OPTS=(
+  -server
+  -Xms2g -Xmx2g
+  -XX:+UseG1GC
+  -XX:MaxGCPauseMillis=200
+  -XX:InitiatingHeapOccupancyPercent=45
+  -XX:+ParallelRefProcEnabled
+  -XX:+AlwaysPreTouch
+  -XX:+HeapDumpOnOutOfMemoryError
+  -XX:HeapDumpPath="${LOG_DIR}/heapdump.hprof"
+  -Xlog:gc*:file="${LOG_DIR}/gc.log:time,uptime,level,tags:filecount=5,filesize=50M"
+  -Djava.security.egd=file:/dev/./urandom
+  -Dfile.encoding=UTF-8
+  -Duser.timezone=Asia/Shanghai
+)
+
+# nohup 只收 JVM/GC 杂讯；业务日志由 logback 写到 ${LOG_DIR}/omni-scaffolding.log
 BUILD_ID=dontKillMe nohup java \
-  -Xms2048m -Xmx2048m -Xmn2048m \
+  "${JAVA_OPTS[@]}" \
   -jar "${JAR_NAME}" \
-  --spring.profiles.active=dev \
-  >/dev/null 2>&1 &
+  --spring.profiles.active=prod \
+  >"${LOG_DIR}/nohup.out" 2>&1 &
 
 # ========== 6. 轮询本机端口，确认服务存活（最多 20 次）==========
 HEALTH_URL="http://127.0.0.1:${SERVER_PORT}/actuator/health"
@@ -295,22 +302,23 @@ done
 
 if [ "${ready}" -ne 1 ]; then
   echo "启动失败：轮询 20 次后本机 ${SERVER_PORT} 仍无响应"
+  echo "请查看：${LOG_DIR}/omni-scaffolding.log 与 ${LOG_DIR}/nohup.out"
   exit 1
 fi
 
 new_pid="$(ps -ef | grep "${JAR_NAME}" | grep -v grep | awk '{print $2}' || true)"
 echo "启动成功，进程 ID ${new_pid:-未知}"
+echo "应用日志：${LOG_DIR}/omni-scaffolding.log"
 ```
 
 ### 脚本注意点
 
-1. **`--spring.profiles.active=dev`**（吃 `application-dev.yml` 默认 DB/Redis）。
-2. **`OMNI_CORS_ORIGINS`** 与浏览器 Origin 一致，否则登录 403。
-3. **`OMNI_SIGN_SECRET`** 写入 `.env.production` 的 `VITE_OMNI_SIGN_SECRET`，前后端必须一致。
-4. `dev` **不要**配同址 `DB_SLAVE_*`。
-5. 应用日志写入 `/root/.logs/omni-scaffolding/{dev|prod}/omni-scaffolding.log`（可用 `OMNI_LOG_HOME` 覆盖根目录）；Jenkins 的 `nohup` 仍可 `>/dev/null`。
-6. 启动后轮询本机 `http://127.0.0.1:${SERVER_PORT}/actuator/health`，最多 20 次、间隔 2s。
-7. 正式生产请改 `prod`，并强制注入 `OMNI_JWT_SECRET` / `OMNI_SIGN_SECRET` / `OMNI_ADMIN_INITIAL_PASSWORD`。
+1. **`--spring.profiles.active=prod`**，密钥必须过 §1.1 预检（JWT≥32、SIGN≥8、ADMIN≥12、ADMIN≠SIGN）。
+2. **`OMNI_SIGN_SECRET`** ≡ 前端 `VITE_OMNI_SIGN_SECRET`，改密钥后必须重新 `npm run build`。
+3. 登录密码 = **`OMNI_ADMIN_INITIAL_PASSWORD`**，不是 `admin123`，也不是 `OMNI_SIGN_SECRET`。
+4. 单库不要配同址 `DB_SLAVE_*`。
+5. 业务日志只看 Logback 文件：`${LOG_DIR}/omni-scaffolding.log`；`nohup.out` 仅兜底 JVM 标准输出。
+6. 启动后轮询 health，最多 20 次、间隔 2s。
 
 ---
 
@@ -329,8 +337,8 @@ echo "启动成功，进程 ID ${new_pid:-未知}"
 
 | 路径 | 用途 |
 |------|------|
-| `omni-admin/.../application-dev.yml` | Jenkins 示例使用的 `dev` 配置 |
 | `omni-admin/.../application-prod.yml` | 正式生产配置 |
+| `omni-admin/.../logback-spring.xml` | 日志输出（控制台 + 文件） |
 | `omni-framework/.../CorsConfig.java` | CORS 实现 |
 | `.env.example` | 环境变量模板 |
 | [README.md](../README.md) | 总览与 Docker |

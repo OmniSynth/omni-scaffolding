@@ -1,5 +1,7 @@
 package com.omni.scaffolding.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
@@ -11,12 +13,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 生产部署配置清单：一次性给出全部检查项的通过/失败，避免运维改一项再启动撞下一项。
  *
- * <p>清单只打印一次；异常消息用短句，避免与 Spring 堆栈重复刷屏。
+ * <p>清单只经 SLF4J/Logback 输出一次；异常消息用短句，避免与 Spring 堆栈重复刷屏。
  */
 public final class ProdDeployConfigChecker {
 
-    private static final List<String> FORBIDDEN = List.of("admin123", "123456");
-    private static final AtomicBoolean REPORT_PRINTED = new AtomicBoolean(false);
+    private static final Logger log = LoggerFactory.getLogger(ProdDeployConfigChecker.class);
+
+    private static final AtomicBoolean REPORT_LOGGED = new AtomicBoolean(false);
 
     private ProdDeployConfigChecker() {
     }
@@ -72,11 +75,11 @@ public final class ProdDeployConfigChecker {
         long failCount = items.stream().filter(i -> !i.ok()).count();
         String report = formatReport(items);
         if (failCount > 0) {
-            printReportOnce(report, true);
+            logReportOnce(report, true);
             throw new IllegalStateException(
                     "prod 部署配置检查失败，共 " + failCount + " 项不合格，详见上方清单");
         }
-        printReportOnce(report, false);
+        logReportOnce(report, false);
     }
 
     /**
@@ -105,32 +108,22 @@ public final class ProdDeployConfigChecker {
             items.add(fail("OMNI_SIGN_SECRET", "未设置；须与前端 VITE_OMNI_SIGN_SECRET 一致"));
         } else {
             String s = sign.trim();
-            List<String> signProblems = new ArrayList<>();
-            if (FORBIDDEN.contains(s)) {
-                signProblems.add("禁止 admin123/123456（易与登录密码混淆）");
-            }
             if (s.length() < 8) {
-                signProblems.add("至少 8 位，当前=" + s.length());
-            }
-            if (signProblems.isEmpty()) {
-                items.add(ok("OMNI_SIGN_SECRET", "长度=" + s.length() + "；须 = VITE_OMNI_SIGN_SECRET"));
+                items.add(fail("OMNI_SIGN_SECRET", "至少 8 位，当前=" + s.length() + "；须 = VITE_OMNI_SIGN_SECRET，改后需重建前端"));
             } else {
-                items.add(fail("OMNI_SIGN_SECRET", String.join("；", signProblems) + "；改后需重建前端"));
+                items.add(ok("OMNI_SIGN_SECRET", "长度=" + s.length() + "；须 = VITE_OMNI_SIGN_SECRET"));
             }
         }
 
         String admin = first(environment, "OMNI_ADMIN_INITIAL_PASSWORD", "omni.security.bootstrap-admin-password");
         if (!StringUtils.hasText(admin)) {
             items.add(fail("OMNI_ADMIN_INITIAL_PASSWORD",
-                    "未设置（admin 登录密码；不是 admin123，也不是 OMNI_SIGN_SECRET）"));
+                    "未设置（admin 登录密码；不能与 OMNI_SIGN_SECRET 相同）"));
         } else {
             String a = admin.trim();
             List<String> adminProblems = new ArrayList<>();
             if (a.length() < 12) {
                 adminProblems.add("至少 12 位，当前=" + a.length());
-            }
-            if (FORBIDDEN.contains(a)) {
-                adminProblems.add("不能使用演示密码 admin123/123456");
             }
             if (StringUtils.hasText(sign) && a.equals(sign.trim())) {
                 adminProblems.add("不能与 OMNI_SIGN_SECRET 相同");
@@ -169,7 +162,7 @@ public final class ProdDeployConfigChecker {
         }
         if (failCount == 0) {
             sb.append("结果：全部通过。登录账号 admin，密码 = OMNI_ADMIN_INITIAL_PASSWORD\n")
-                    .append("禁止用 admin123 / OMNI_SIGN_SECRET 当登录密码。\n");
+                    .append("注意：登录密码与 OMNI_SIGN_SECRET（加签密钥）不是同一用途。\n");
         } else {
             sb.append("结果：失败 ").append(failCount).append(" 项，已拒绝启动。请一次性改完后再发布。\n");
         }
@@ -177,14 +170,14 @@ public final class ProdDeployConfigChecker {
         return sb.toString();
     }
 
-    private static void printReportOnce(String report, boolean error) {
-        if (!REPORT_PRINTED.compareAndSet(false, true)) {
+    private static void logReportOnce(String report, boolean error) {
+        if (!REPORT_LOGGED.compareAndSet(false, true)) {
             return;
         }
         if (error) {
-            System.err.println(report);
+            log.error("{}", report);
         } else {
-            System.out.println(report);
+            log.warn("{}", report);
         }
     }
 
