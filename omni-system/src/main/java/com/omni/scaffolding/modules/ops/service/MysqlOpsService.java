@@ -1,6 +1,8 @@
 package com.omni.scaffolding.modules.ops.service;
 
 import com.omni.scaffolding.common.api.ErrorCode;
+import com.omni.scaffolding.common.api.PageQuery;
+import com.omni.scaffolding.common.api.PageResult;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.modules.ops.dto.MysqlColumnView;
 import com.omni.scaffolding.modules.ops.dto.MysqlCreateIndexRequest;
@@ -122,6 +124,65 @@ public class MysqlOpsService {
             t.setUpdateTime(formatTs(rs.getTimestamp("UPDATE_TIME")));
             return t;
         }, args.toArray());
+    }
+
+    /**
+     * 分页查询表列表。
+     *
+     * @param keyword 可选，表名模糊匹配
+     * @param page    页码，从 1 开始
+     * @param size    每页条数
+     * @return 分页表列表
+     */
+    public PageResult<MysqlTableView> listTables(String keyword, Long page, Long size) {
+        String schema = currentSchema();
+        String kw = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        if (kw != null && !IDENTIFIER.matcher(kw.replace("%", "").replace("*", "")).matches()
+                && !kw.chars().allMatch(c -> Character.isLetterOrDigit(c) || c == '_' || c == '%' || c == '*')) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "关键字包含非法字符");
+        }
+        String like = kw == null ? null : kw.replace('*', '%');
+        PageQuery pq = PageQuery.of(page, size);
+
+        String where = " WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'";
+        List<Object> args = new ArrayList<>();
+        args.add(schema);
+        if (like != null) {
+            where += " AND TABLE_NAME LIKE ?";
+            args.add(like);
+        }
+
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM information_schema.TABLES" + where,
+                Long.class,
+                args.toArray());
+        long total = count == null ? 0 : count;
+        if (total == 0) {
+            return pq.toResult(0, List.of());
+        }
+
+        String sql = """
+                SELECT TABLE_NAME, ENGINE, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH, DATA_FREE,
+                       TABLE_COLLATION, TABLE_COMMENT, CREATE_TIME, UPDATE_TIME
+                FROM information_schema.TABLES
+                """ + where + " ORDER BY TABLE_NAME LIMIT ? OFFSET ?";
+        args.add(pq.getSize());
+        args.add(pq.getOffset());
+        List<MysqlTableView> records = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            MysqlTableView t = new MysqlTableView();
+            t.setName(rs.getString("TABLE_NAME"));
+            t.setEngine(rs.getString("ENGINE"));
+            t.setTableRows(asLong(rs.getObject("TABLE_ROWS")));
+            t.setDataLength(asLong(rs.getObject("DATA_LENGTH")));
+            t.setIndexLength(asLong(rs.getObject("INDEX_LENGTH")));
+            t.setDataFree(asLong(rs.getObject("DATA_FREE")));
+            t.setCollation(rs.getString("TABLE_COLLATION"));
+            t.setComment(rs.getString("TABLE_COMMENT"));
+            t.setCreateTime(formatTs(rs.getTimestamp("CREATE_TIME")));
+            t.setUpdateTime(formatTs(rs.getTimestamp("UPDATE_TIME")));
+            return t;
+        }, args.toArray());
+        return pq.toResult(total, records);
     }
 
     /**

@@ -12,9 +12,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class IpVisitItemView {
 
-    /** 客户端 IP。 */
+    /**
+     * 客户端 IP。
+     */
     private String ip;
 
-    /** 当日访问次数。 */
+    /**
+     * 当日访问次数。
+     */
     private long count;
 }

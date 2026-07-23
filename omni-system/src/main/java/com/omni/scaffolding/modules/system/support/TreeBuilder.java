@@ -19,7 +19,9 @@ import java.util.function.Function;
  */
 public final class TreeBuilder {
 
-    /** 工具类，禁止实例化。 */
+    /**
+     * 工具类，禁止实例化。
+     */
     private TreeBuilder() {
     }
 

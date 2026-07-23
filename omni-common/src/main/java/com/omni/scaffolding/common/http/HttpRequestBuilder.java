@@ -27,37 +27,59 @@ import java.util.StringJoiner;
  */
 public final class HttpRequestBuilder {
 
-    /** HTTP 方法（大写）。 */
+    /**
+     * HTTP 方法（大写）。
+     */
     private final String method;
 
-    /** 原始 URL（不含 Query）。 */
+    /**
+     * 原始 URL（不含 Query）。
+     */
     private final String rawUrl;
 
-    /** Query 参数，同名可对应多值。 */
+    /**
+     * Query 参数，同名可对应多值。
+     */
     private final Map<String, List<String>> queryParams = new LinkedHashMap<>();
 
-    /** 请求头。 */
+    /**
+     * 请求头。
+     */
     private final Map<String, String> headers = new LinkedHashMap<>();
 
-    /** TCP 连接超时。 */
+    /**
+     * TCP 连接超时。
+     */
     private Duration connectTimeout = HttpClients.DEFAULT_CONNECT_TIMEOUT;
 
-    /** 整次请求超时。 */
+    /**
+     * 整次请求超时。
+     */
     private Duration requestTimeout = HttpClients.DEFAULT_REQUEST_TIMEOUT;
 
-    /** 重定向策略。 */
+    /**
+     * 重定向策略。
+     */
     private HttpClient.Redirect redirect = HttpClient.Redirect.NORMAL;
 
-    /** JSON 序列化 / 反序列化用 Mapper。 */
+    /**
+     * JSON 序列化 / 反序列化用 Mapper。
+     */
     private ObjectMapper objectMapper = HttpClients.defaultObjectMapper();
 
-    /** 自定义 HttpClient，设置后忽略 connectTimeout / redirect。 */
+    /**
+     * 自定义 HttpClient，设置后忽略 connectTimeout / redirect。
+     */
     private HttpClient customClient;
 
-    /** 请求正文字节。 */
+    /**
+     * 请求正文字节。
+     */
     private byte[] bodyBytes;
 
-    /** 请求正文 Content-Type。 */
+    /**
+     * 请求正文 Content-Type。
+     */
     private String contentType;
 
     /**

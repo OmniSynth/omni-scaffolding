@@ -27,28 +27,44 @@ import java.util.concurrent.TimeUnit;
  */
 public final class ThreadPoolBuilder {
 
-    /** 线程名前缀，实际名称为 {@code prefix + 序号}。 */
+    /**
+     * 线程名前缀，实际名称为 {@code prefix + 序号}。
+     */
     private final String namePrefix;
 
-    /** 核心线程数，默认 CPU 核数。 */
+    /**
+     * 核心线程数，默认 CPU 核数。
+     */
     private int corePoolSize = Runtime.getRuntime().availableProcessors();
 
-    /** 最大线程数，默认核心数 × 2。 */
+    /**
+     * 最大线程数，默认核心数 × 2。
+     */
     private int maxPoolSize = corePoolSize * 2;
 
-    /** 有界队列容量，语义见 {@link #queueCapacity(int)}。 */
+    /**
+     * 有界队列容量，语义见 {@link #queueCapacity(int)}。
+     */
     private int queueCapacity = 256;
 
-    /** 空闲线程存活时间。 */
+    /**
+     * 空闲线程存活时间。
+     */
     private Duration keepAlive = Duration.ofSeconds(60);
 
-    /** 是否允许核心线程超时回收。 */
+    /**
+     * 是否允许核心线程超时回收。
+     */
     private boolean allowCoreThreadTimeOut = false;
 
-    /** 是否创建 daemon 线程。 */
+    /**
+     * 是否创建 daemon 线程。
+     */
     private boolean daemon = false;
 
-    /** 队列满时的拒绝策略。 */
+    /**
+     * 队列满时的拒绝策略。
+     */
     private RejectedExecutionHandler rejectedExecutionHandler = new ThreadPoolExecutor.AbortPolicy();
 
     private ThreadPoolBuilder(String namePrefix) {

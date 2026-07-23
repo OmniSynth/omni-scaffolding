@@ -12,10 +12,14 @@ import java.util.UUID;
  */
 public final class TraceContext {
 
-    /** MDC 键名，日志 pattern 使用 {@code %X{traceId}}。 */
+    /**
+     * MDC 键名，日志 pattern 使用 {@code %X{traceId}}。
+     */
     public static final String TRACE_ID_KEY = "traceId";
 
-    /** HTTP 响应 / 请求头名，便于客户端串联排障。 */
+    /**
+     * HTTP 响应 / 请求头名，便于客户端串联排障。
+     */
     public static final String TRACE_HEADER = "X-Trace-Id";
 
     private TraceContext() {
@@ -44,7 +48,9 @@ public final class TraceContext {
         return traceId;
     }
 
-    /** 清除当前线程 MDC 中的 traceId（请求结束兜底）。 */
+    /**
+     * 清除当前线程 MDC 中的 traceId（请求结束兜底）。
+     */
     public static void clear() {
         MDC.remove(TRACE_ID_KEY);
     }

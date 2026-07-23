@@ -9,7 +9,9 @@ import lombok.Data;
 @Data
 public class CronValidateRequest {
 
-    /** Cron 表达式。 */
+    /**
+     * Cron 表达式。
+     */
     @NotBlank(message = "Cron 表达式不能为空")
     private String cronExpression;
 }

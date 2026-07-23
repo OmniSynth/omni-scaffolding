@@ -30,7 +30,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConfigService {
 
-    /** 导出最大行数，避免一次拉取过大。 */
+    /**
+     * 导出最大行数，避免一次拉取过大。
+     */
     private static final long EXPORT_LIMIT = 10_000L;
 
     private final SysConfigRepository configRepository;

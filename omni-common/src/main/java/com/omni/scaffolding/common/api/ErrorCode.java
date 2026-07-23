@@ -22,9 +22,13 @@ public enum ErrorCode {
     INTERNAL_ERROR(500, "系统内部错误"),
     BUSINESS_ERROR(1000, "业务处理失败");
 
-    /** HTTP/业务层数值码。 */
+    /**
+     * HTTP/业务层数值码。
+     */
     private final int code;
 
-    /** 默认可读说明。 */
+    /**
+     * 默认可读说明。
+     */
     private final String message;
 }

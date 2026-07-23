@@ -9,7 +9,9 @@ import lombok.Data;
 @Data
 public class ConfigStatusRequest {
 
-    /** 是否启用。 */
+    /**
+     * 是否启用。
+     */
     @NotNull(message = "状态不能为空")
     private Boolean status;
 }

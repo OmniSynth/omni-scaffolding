@@ -24,7 +24,9 @@ import java.util.Set;
 @Order(Ordered.HIGHEST_PRECEDENCE + 21)
 public class QuartzEnableEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
-    /** 开关配置键：{@code omni.quartz.enabled}。 */
+    /**
+     * 开关配置键：{@code omni.quartz.enabled}。
+     */
     public static final String ENABLED_KEY = "omni.quartz.enabled";
     private static final String EXCLUDE_KEY = "spring.autoconfigure.exclude";
     private static final String QUARTZ_AUTO_CONFIG = QuartzAutoConfiguration.class.getName();

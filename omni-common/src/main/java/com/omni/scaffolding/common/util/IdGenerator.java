@@ -9,7 +9,9 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class IdGenerator {
 
-    /** 小于 Number.MAX_SAFE_INTEGER (9007199254740991) */
+    /**
+     * 小于 Number.MAX_SAFE_INTEGER (9007199254740991)
+     */
     private static final long MAX_SAFE_ID = 9_000_000_000_000_000L;
 
     private IdGenerator() {

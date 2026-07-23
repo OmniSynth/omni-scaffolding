@@ -15,12 +15,18 @@ import java.util.List;
 @AllArgsConstructor
 public class CronValidateView {
 
-    /** 表达式是否有效。 */
+    /**
+     * 表达式是否有效。
+     */
     private boolean valid;
 
-    /** 校验说明。 */
+    /**
+     * 校验说明。
+     */
     private String message;
 
-    /** 下次触发时间预览（最多 5 次）。 */
+    /**
+     * 下次触发时间预览（最多 5 次）。
+     */
     private List<String> nextFireTimes = new ArrayList<>();
 }

@@ -37,7 +37,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DictService {
 
-    /** 导出最大行数，避免一次拉取过大。 */
+    /**
+     * 导出最大行数，避免一次拉取过大。
+     */
     private static final long EXPORT_LIMIT = 10_000L;
 
     private final SysDictTypeRepository dictTypeRepository;
@@ -344,10 +346,10 @@ public class DictService {
     /**
      * 将请求字段应用到字典数据实体。
      *
-     * @param data      目标实体
-     * @param request   保存请求
-     * @param typeCode  字典类型编码
-     * @param value     字典项值
+     * @param data     目标实体
+     * @param request  保存请求
+     * @param typeCode 字典类型编码
+     * @param value    字典项值
      */
     private void applyData(SysDictData data, DictDataSaveRequest request, String typeCode, String value) {
         data.setTypeCode(typeCode);

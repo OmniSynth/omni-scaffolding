@@ -11,7 +11,9 @@ import lombok.Data;
 @Data
 public class RedisExpireRequest {
 
-    /** Key 名称，必填。 */
+    /**
+     * Key 名称，必填。
+     */
     @NotBlank(message = "Key 不能为空")
     @Size(max = 512, message = "Key 长度不能超过 512")
     private String key;

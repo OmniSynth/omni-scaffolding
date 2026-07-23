@@ -10,16 +10,24 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class NamedThreadFactory implements ThreadFactory {
 
-    /** 线程名前缀，末尾自动补 {@code -}。 */
+    /**
+     * 线程名前缀，末尾自动补 {@code -}。
+     */
     private final String namePrefix;
 
-    /** {@code true} 时创建虚拟线程。 */
+    /**
+     * {@code true} 时创建虚拟线程。
+     */
     private final boolean virtual;
 
-    /** 是否 daemon（平台线程生效；虚拟线程始终为 daemon）。 */
+    /**
+     * 是否 daemon（平台线程生效；虚拟线程始终为 daemon）。
+     */
     private final boolean daemon;
 
-    /** 线程序号自增器。 */
+    /**
+     * 线程序号自增器。
+     */
     private final AtomicInteger sequence = new AtomicInteger(1);
 
     /**

@@ -34,7 +34,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class QuartzJobScheduler {
 
-    /** 未指定任务组时的默认 Quartz Job 组名。 */
+    /**
+     * 未指定任务组时的默认 Quartz Job 组名。
+     */
     public static final String DEFAULT_GROUP = "omni-job";
 
     private final Scheduler scheduler;

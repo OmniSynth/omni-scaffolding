@@ -8,24 +8,38 @@ import lombok.Data;
 @Data
 public class DictTypeView {
 
-    /** 主键。 */
+    /**
+     * 主键。
+     */
     private Long id;
 
-    /** 类型编码。 */
+    /**
+     * 类型编码。
+     */
     private String code;
 
-    /** 类型名称。 */
+    /**
+     * 类型名称。
+     */
     private String name;
 
-    /** 备注。 */
+    /**
+     * 备注。
+     */
     private String remark;
 
-    /** 排序。 */
+    /**
+     * 排序。
+     */
     private Integer sort;
 
-    /** 是否启用。 */
+    /**
+     * 是否启用。
+     */
     private Boolean status;
 
-    /** 该类型下未删除的数据条数。 */
+    /**
+     * 该类型下未删除的数据条数。
+     */
     private Long dataCount;
 }

@@ -9,7 +9,9 @@ import java.util.function.Supplier;
  */
 public final class DesensitizeContext {
 
-    /** 忽略脱敏嵌套深度，&gt;0 时跳过掩码。 */
+    /**
+     * 忽略脱敏嵌套深度，&gt;0 时跳过掩码。
+     */
     private static final ThreadLocal<Integer> IGNORE_DEPTH = ThreadLocal.withInitial(() -> 0);
 
     private DesensitizeContext() {

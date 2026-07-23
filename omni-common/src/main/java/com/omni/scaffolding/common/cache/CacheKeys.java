@@ -5,7 +5,9 @@ package com.omni.scaffolding.common.cache;
  */
 public final class CacheKeys {
 
-    /** {@link CacheNames#IP_WHITELIST} 下：全部启用 IP 列表。 */
+    /**
+     * {@link CacheNames#IP_WHITELIST} 下：全部启用 IP 列表。
+     */
     public static final String IP_WHITELIST_ENABLED = "enabled";
 
     private CacheKeys() {

@@ -8,21 +8,33 @@ import lombok.Data;
 @Data
 public class RedisKeyDetailView {
 
-    /** Key 名称。 */
+    /**
+     * Key 名称。
+     */
     private String key;
 
-    /** 类型。 */
+    /**
+     * 类型。
+     */
     private String type;
 
-    /** TTL 秒。 */
+    /**
+     * TTL 秒。
+     */
     private Long ttlSeconds;
 
-    /** 元素数量或字符串长度。 */
+    /**
+     * 元素数量或字符串长度。
+     */
     private Long size;
 
-    /** 字符串值，或结构化数据的 JSON 文本。 */
+    /**
+     * 字符串值，或结构化数据的 JSON 文本。
+     */
     private String value;
 
-    /** 值是否被截断。 */
+    /**
+     * 值是否被截断。
+     */
     private boolean truncated;
 }

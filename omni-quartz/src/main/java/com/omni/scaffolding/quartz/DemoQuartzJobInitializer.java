@@ -29,11 +29,17 @@ import java.util.Set;
 @ConditionalOnProperty(prefix = "omni.quartz", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DemoQuartzJobInitializer implements ApplicationRunner {
 
-    /** 演示 Job 名称。 */
+    /**
+     * 演示 Job 名称。
+     */
     public static final String JOB_NAME = "demoHeartbeatJob";
-    /** 演示 Job 组。 */
+    /**
+     * 演示 Job 组。
+     */
     public static final String JOB_GROUP = "omni-demo";
-    /** 演示 Trigger 名称。 */
+    /**
+     * 演示 Trigger 名称。
+     */
     public static final String TRIGGER_NAME = "demoHeartbeatTrigger";
 
     private final Scheduler scheduler;

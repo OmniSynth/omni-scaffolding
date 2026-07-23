@@ -11,31 +11,49 @@ import java.time.Instant;
 @Data
 public class NoticeView {
 
-    /** 主键。 */
+    /**
+     * 主键。
+     */
     private Long id;
 
-    /** 标题。 */
+    /**
+     * 标题。
+     */
     private String title;
 
-    /** 正文内容。 */
+    /**
+     * 正文内容。
+     */
     private String content;
 
-    /** 类型：NOTICE / ANNOUNCE。 */
+    /**
+     * 类型：NOTICE / ANNOUNCE。
+     */
     private String type;
 
-    /** 是否启用。 */
+    /**
+     * 是否启用。
+     */
     private Boolean status;
 
-    /** 发布人用户主键。 */
+    /**
+     * 发布人用户主键。
+     */
     private Long publisherId;
 
-    /** 发布人姓名。 */
+    /**
+     * 发布人姓名。
+     */
     private String publisherName;
 
-    /** 发布时间。 */
+    /**
+     * 发布时间。
+     */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private Instant publishTime;
 
-    /** 收件箱场景：当前用户是否已读。 */
+    /**
+     * 收件箱场景：当前用户是否已读。
+     */
     private Boolean readFlag;
 }

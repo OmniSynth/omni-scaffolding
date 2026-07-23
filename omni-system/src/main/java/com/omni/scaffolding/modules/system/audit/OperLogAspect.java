@@ -71,11 +71,11 @@ public class OperLogAspect {
     /**
      * 组装操作日志实体并异步落库。
      *
-     * @param pjp      连接点
+     * @param pjp       连接点
      * @param signature 方法签名
-     * @param ann      操作日志注解
-     * @param costMs   执行耗时（毫秒）
-     * @param error    业务异常，成功时为 {@code null}
+     * @param ann       操作日志注解
+     * @param costMs    执行耗时（毫秒）
+     * @param error     业务异常，成功时为 {@code null}
      */
     private void persist(ProceedingJoinPoint pjp,
                          MethodSignature signature,

@@ -15,7 +15,9 @@ import org.springframework.stereotype.Component;
 @Component("sampleScheduledTasks")
 public class SampleScheduledTasks {
 
-    /** 无参心跳，调用目标 {@code sampleScheduledTasks.ping}。 */
+    /**
+     * 无参心跳，调用目标 {@code sampleScheduledTasks.ping}。
+     */
     public void ping() {
         log.info("[SampleScheduledTasks] ping ok");
     }

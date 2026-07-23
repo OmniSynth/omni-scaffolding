@@ -129,6 +129,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/ops/druid/index.vue'),
         meta: { title: 'Druid监控', permission: 'ops:druid:list' },
       },
+      {
+        path: 'tool/gen',
+        name: 'ToolGen',
+        component: () => import('@/views/tool/gen/index.vue'),
+        meta: { title: '代码生成', permission: 'tool:gen:list' },
+      },
     ],
   },
 ]

@@ -8,27 +8,43 @@ import lombok.Data;
 @Data
 public class OnlineSession {
 
-    /** JWT jti，会话主键。 */
+    /**
+     * JWT jti，会话主键。
+     */
     private String jti;
 
-    /** 用户 ID。 */
+    /**
+     * 用户 ID。
+     */
     private Long userId;
 
-    /** 登录用户名。 */
+    /**
+     * 登录用户名。
+     */
     private String username;
 
-    /** 部门 ID。 */
+    /**
+     * 部门 ID。
+     */
     private Long deptId;
 
-    /** 登录 IP。 */
+    /**
+     * 登录 IP。
+     */
     private String ip;
 
-    /** User-Agent。 */
+    /**
+     * User-Agent。
+     */
     private String userAgent;
 
-    /** 登录时间（毫秒时间戳）。 */
+    /**
+     * 登录时间（毫秒时间戳）。
+     */
     private Long loginTime;
 
-    /** 令牌过期时间（毫秒时间戳）。 */
+    /**
+     * 令牌过期时间（毫秒时间戳）。
+     */
     private Long expireAt;
 }

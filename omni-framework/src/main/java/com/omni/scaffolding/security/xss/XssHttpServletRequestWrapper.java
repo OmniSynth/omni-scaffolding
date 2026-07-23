@@ -33,7 +33,9 @@ import java.util.Set;
  */
 public class XssHttpServletRequestWrapper extends HttpServletRequestWrapper {
 
-    /** 不参与 XSS 清洗的请求头（认证、传输层等）。 */
+    /**
+     * 不参与 XSS 清洗的请求头（认证、传输层等）。
+     */
     private static final Set<String> SKIP_HEADERS = Set.of(
             "authorization",
             "cookie",
@@ -47,16 +49,24 @@ public class XssHttpServletRequestWrapper extends HttpServletRequestWrapper {
             "accept-language"
     );
 
-    /** 清洗策略。 */
+    /**
+     * 清洗策略。
+     */
     private final XssMode mode;
 
-    /** JSON Body 递归清洗用。 */
+    /**
+     * JSON Body 递归清洗用。
+     */
     private final ObjectMapper objectMapper;
 
-    /** 缓存并清洗后的请求正文，支持重复读取。 */
+    /**
+     * 缓存并清洗后的请求正文，支持重复读取。
+     */
     private final byte[] cachedBody;
 
-    /** 已清洗的 Query / Form 参数表。 */
+    /**
+     * 已清洗的 Query / Form 参数表。
+     */
     private final Map<String, String[]> sanitizedParameterMap;
 
     /**

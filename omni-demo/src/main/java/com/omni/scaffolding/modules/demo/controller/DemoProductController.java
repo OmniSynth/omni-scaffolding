@@ -67,13 +67,13 @@ public class DemoProductController {
     /**
      * 多条件动态分页搜索（MyBatis 复杂读）。
      *
-     * @param category  可选，类目
-     * @param keyword   可选，关键词
-     * @param status    可选，状态
-     * @param minPrice  可选，最低价（分）
-     * @param maxPrice  可选，最高价（分）
-     * @param page      页码
-     * @param size      每页条数
+     * @param category 可选，类目
+     * @param keyword  可选，关键词
+     * @param status   可选，状态
+     * @param minPrice 可选，最低价（分）
+     * @param maxPrice 可选，最高价（分）
+     * @param page     页码
+     * @param size     每页条数
      * @return 分页结果
      */
     @Operation(summary = "动态条件分页搜索（MyBatis）")

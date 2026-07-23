@@ -11,7 +11,9 @@ import lombok.Getter;
 @Getter
 public class BusinessException extends RuntimeException {
 
-    /** 对应 {@link ApiResponse#getCode()} 的业务错误码。 */
+    /**
+     * 对应 {@link ApiResponse#getCode()} 的业务错误码。
+     */
     private final ErrorCode errorCode;
 
     /**

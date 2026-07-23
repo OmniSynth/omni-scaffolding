@@ -24,7 +24,9 @@ public enum DataScopeType {
      */
     SELF(1);
 
-    /** 宽松度排序权重，数值越大范围越宽。 */
+    /**
+     * 宽松度排序权重，数值越大范围越宽。
+     */
     private final int rank;
 
     DataScopeType(int rank) {

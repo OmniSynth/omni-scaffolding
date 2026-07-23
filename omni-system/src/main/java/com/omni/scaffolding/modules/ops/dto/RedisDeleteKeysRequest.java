@@ -12,7 +12,9 @@ import java.util.List;
 @Data
 public class RedisDeleteKeysRequest {
 
-    /** 待删除 Key 列表，必填。 */
+    /**
+     * 待删除 Key 列表，必填。
+     */
     @NotEmpty(message = "keys 不能为空")
     @Size(max = 100, message = "单次最多删除 100 个 Key")
     private List<@Size(max = 512, message = "Key 长度不能超过 512") String> keys;

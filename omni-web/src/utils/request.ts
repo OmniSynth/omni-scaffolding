@@ -89,23 +89,16 @@ export async function uploadData<T>(url: string, formData: FormData): Promise<T>
   return res.data.data
 }
 
-/**
- * 下载二进制文件（Excel 等）。失败时若响应为 JSON 业务错误则解析提示。
- */
-export async function downloadBlob(url: string, params?: object, filename?: string): Promise<void> {
-  const res = await request.get(url, {
-    params,
-    responseType: 'blob',
-    // 绕过 JSON ApiResponse 拦截器对 blob 的误判
-    transformResponse: [(data) => data],
-    validateStatus: () => true,
-  })
-
+async function saveBlobResponse(
+  res: AxiosResponse,
+  filename: string,
+  failMessage: string,
+): Promise<void> {
   const blob = res.data as Blob
   const contentType = String(res.headers['content-type'] || '')
   if (res.status >= 400 || contentType.includes('application/json')) {
     const text = await blob.text()
-    let message = '导出失败'
+    let message = failMessage
     try {
       const payload = JSON.parse(text) as ApiResponse
       message = payload.message || message
@@ -119,7 +112,7 @@ export async function downloadBlob(url: string, params?: object, filename?: stri
     return Promise.reject(new Error(message))
   }
 
-  let finalName = filename || 'download.xlsx'
+  let finalName = filename
   const disposition = String(res.headers['content-disposition'] || '')
   const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
   if (utf8Match?.[1]) {
@@ -139,6 +132,32 @@ export async function downloadBlob(url: string, params?: object, filename?: stri
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(objectUrl)
+}
+
+/**
+ * 下载二进制文件（Excel 等）。失败时若响应为 JSON 业务错误则解析提示。
+ */
+export async function downloadBlob(url: string, params?: object, filename?: string): Promise<void> {
+  const res = await request.get(url, {
+    params,
+    responseType: 'blob',
+    // 绕过 JSON ApiResponse 拦截器对 blob 的误判
+    transformResponse: [(data) => data],
+    validateStatus: () => true,
+  })
+  return saveBlobResponse(res, filename || 'download.xlsx', '导出失败')
+}
+
+/**
+ * POST 下载二进制文件（如代码生成 ZIP）。
+ */
+export async function downloadBlobPost(url: string, body?: unknown, filename?: string): Promise<void> {
+  const res = await request.post(url, body, {
+    responseType: 'blob',
+    transformResponse: [(data) => data],
+    validateStatus: () => true,
+  })
+  return saveBlobResponse(res, filename || 'download.zip', '下载失败')
 }
 
 export { request }

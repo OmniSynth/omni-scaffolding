@@ -20,25 +20,39 @@ public class DynamicPermissionSnapshot implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 用户 ID。 */
+    /**
+     * 用户 ID。
+     */
     private Long userId;
 
-    /** 登录用户名。 */
+    /**
+     * 登录用户名。
+     */
     private String username;
 
-    /** 所属部门 ID。 */
+    /**
+     * 所属部门 ID。
+     */
     private Long deptId;
 
-    /** 有效数据范围（多角色合并后）。 */
+    /**
+     * 有效数据范围（多角色合并后）。
+     */
     private String dataScope;
 
-    /** 账号是否启用；禁用时不应建立鉴权上下文。 */
+    /**
+     * 账号是否启用；禁用时不应建立鉴权上下文。
+     */
     private boolean enabled;
 
-    /** 角色码列表。 */
+    /**
+     * 角色码列表。
+     */
     private List<String> roles = new ArrayList<>();
 
-    /** 权限码列表。 */
+    /**
+     * 权限码列表。
+     */
     private List<String> permissions = new ArrayList<>();
 
     /**

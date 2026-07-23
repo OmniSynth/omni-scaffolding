@@ -11,31 +11,49 @@ import java.time.Instant;
 @Data
 public class LoginLogView {
 
-    /** 主键。 */
+    /**
+     * 主键。
+     */
     private Long id;
 
-    /** 用户主键。 */
+    /**
+     * 用户主键。
+     */
     private Long userId;
 
-    /** 登录用户名。 */
+    /**
+     * 登录用户名。
+     */
     private String username;
 
-    /** 客户端 IP。 */
+    /**
+     * 客户端 IP。
+     */
     private String ip;
 
-    /** 浏览器 User-Agent。 */
+    /**
+     * 浏览器 User-Agent。
+     */
     private String userAgent;
 
-    /** 登录结果：SUCCESS / FAIL。 */
+    /**
+     * 登录结果：SUCCESS / FAIL。
+     */
     private String status;
 
-    /** 结果说明。 */
+    /**
+     * 结果说明。
+     */
     private String message;
 
-    /** 链路追踪 ID。 */
+    /**
+     * 链路追踪 ID。
+     */
     private String traceId;
 
-    /** 登录时间。 */
+    /**
+     * 登录时间。
+     */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private Instant loginTime;
 }

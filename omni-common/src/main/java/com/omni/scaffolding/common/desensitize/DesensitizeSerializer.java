@@ -16,19 +16,29 @@ import java.io.IOException;
  */
 public class DesensitizeSerializer extends JsonSerializer<Object> implements ContextualSerializer {
 
-    /** 脱敏策略，来自 {@link Desensitize#type()}。 */
+    /**
+     * 脱敏策略，来自 {@link Desensitize#type()}。
+     */
     private final DesensitizeType type;
 
-    /** {@link DesensitizeType#CUSTOM} 时保留左侧字符数。 */
+    /**
+     * {@link DesensitizeType#CUSTOM} 时保留左侧字符数。
+     */
     private final int prefixKeep;
 
-    /** {@link DesensitizeType#CUSTOM} 时保留右侧字符数。 */
+    /**
+     * {@link DesensitizeType#CUSTOM} 时保留右侧字符数。
+     */
     private final int suffixKeep;
 
-    /** 掩码字符。 */
+    /**
+     * 掩码字符。
+     */
     private final char maskChar;
 
-    /** 默认构造，供 Jackson 实例化。 */
+    /**
+     * 默认构造，供 Jackson 实例化。
+     */
     public DesensitizeSerializer() {
         this(DesensitizeType.CUSTOM, 0, 0, '*');
     }

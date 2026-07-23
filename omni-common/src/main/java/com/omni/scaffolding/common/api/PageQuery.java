@@ -7,13 +7,19 @@ package com.omni.scaffolding.common.api;
  */
 public final class PageQuery {
 
-    /** 默认页码（从 1 开始）。 */
+    /**
+     * 默认页码（从 1 开始）。
+     */
     public static final long DEFAULT_PAGE = 1L;
 
-    /** 默认每页条数。 */
+    /**
+     * 默认每页条数。
+     */
     public static final long DEFAULT_SIZE = 10L;
 
-    /** 单页最大条数上限。 */
+    /**
+     * 单页最大条数上限。
+     */
     public static final long MAX_SIZE = 200L;
 
     private final long page;
@@ -43,12 +49,16 @@ public final class PageQuery {
         return new PageQuery(p, s);
     }
 
-    /** @return 当前页码（从 1 开始） */
+    /**
+     * @return 当前页码（从 1 开始）
+     */
     public long getPage() {
         return page;
     }
 
-    /** @return 每页条数 */
+    /**
+     * @return 每页条数
+     */
     public long getSize() {
         return size;
     }

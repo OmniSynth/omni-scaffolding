@@ -8,30 +8,48 @@ import lombok.Data;
 @Data
 public class DictDataView {
 
-    /** 主键。 */
+    /**
+     * 主键。
+     */
     private Long id;
 
-    /** 所属类型编码。 */
+    /**
+     * 所属类型编码。
+     */
     private String typeCode;
 
-    /** 显示标签。 */
+    /**
+     * 显示标签。
+     */
     private String label;
 
-    /** 键值。 */
+    /**
+     * 键值。
+     */
     private String value;
 
-    /** 排序。 */
+    /**
+     * 排序。
+     */
     private Integer sort;
 
-    /** 样式类。 */
+    /**
+     * 样式类。
+     */
     private String cssClass;
 
-    /** 是否默认项。 */
+    /**
+     * 是否默认项。
+     */
     private Boolean defaultFlag;
 
-    /** 是否启用。 */
+    /**
+     * 是否启用。
+     */
     private Boolean status;
 
-    /** 备注。 */
+    /**
+     * 备注。
+     */
     private String remark;
 }
