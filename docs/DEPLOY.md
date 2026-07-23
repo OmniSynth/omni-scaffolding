@@ -141,7 +141,7 @@ sudo nginx -t && sudo systemctl reload nginx
 | `缺少登录签名` | 前端未打进 `VITE_OMNI_SIGN_SECRET`，请求无 `X-Omni-*` 头 | 按 Jenkins 脚本重写 `.env.production` 后 **重新 `npm run build` 并拷贝 dist** |
 | `登录签名无效` | 前后端 Sign 密钥不一致 | 保证 `OMNI_SIGN_SECRET` ≡ `VITE_OMNI_SIGN_SECRET`，前后端同一次部署 |
 | `登录签名已过期` | 服务器与客户端时差 > 5 分钟 | 校准 NTP / 系统时间 |
-| `用户名或密码错误` | 账号或密码不对 | `prod` 登录密码 = `OMNI_ADMIN_INITIAL_PASSWORD`（不是 SIGN）。日志应有「已将演示 admin 密码替换…」 |
+| `用户名或密码错误` | 账号或密码不对 | **登录密码 = `OMNI_ADMIN_INITIAL_PASSWORD`**（你这边是 `OmniDemo@2026!`），**不是** `admin123`，也不是 `OMNI_SIGN_SECRET`。登录页若仍预填 `admin123` 请改掉。日志有「已将演示 admin 密码替换…」即库已改密 |
 
 浏览器开发者工具 → Network → `login` 请求头中应有：
 

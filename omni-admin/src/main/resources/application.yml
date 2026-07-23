@@ -344,6 +344,9 @@ omni:
         - /v3/api-docs/**
         - /swagger-ui/**
         - /swagger-ui.html
+        # 登录体含密码明文，避免清洗误伤特殊字符
+        - /api/auth/login
+        - /api/auth/captcha
         - /api/system/files
         - /api/system/files/**
   rate-limit:

@@ -17,7 +17,8 @@ const captchaLoading = ref(false)
 
 const form = reactive({
   username: 'admin',
-  password: 'admin123',
+  // 生产经 OMNI_ADMIN_INITIAL_PASSWORD 初始化后不再是 admin123；勿预填以免误导
+  password: import.meta.env.DEV ? 'admin123' : '',
   captchaId: '',
   captchaCode: '',
 })
@@ -90,7 +91,7 @@ onMounted(loadCaptcha)
   <div class="login-page">
     <div class="panel">
       <h1>Omni Admin</h1>
-      <p class="hint">默认账号 admin / admin123</p>
+      <p class="hint">本地默认 admin / admin123；生产请用部署时的初始密码</p>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="onSubmit">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" autocomplete="username" />

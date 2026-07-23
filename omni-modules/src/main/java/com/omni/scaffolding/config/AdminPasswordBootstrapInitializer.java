@@ -55,9 +55,16 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
                 log.info("Admin 密码已非演示口令，跳过 bootstrap");
                 return;
             }
-            admin.setPasswordHash(passwordEncoder.encode(passwordToSet));
-            userRepository.save(admin);
-            log.warn("已将演示 admin 密码替换为 OMNI_ADMIN_INITIAL_PASSWORD，请登录后及时修改");
+            String encoded = passwordEncoder.encode(passwordToSet);
+            admin.setPasswordHash(encoded);
+            // 同事务内立刻可被后续读路径看到；避免仅 save 未 flush 的边界情况
+            userRepository.saveAndFlush(admin);
+            if (!passwordEncoder.matches(passwordToSet, encoded)) {
+                throw new IllegalStateException("admin 密码 bootstrap 自检失败：编码结果与明文不匹配");
+            }
+            log.warn(
+                    "已将演示 admin 密码替换为 OMNI_ADMIN_INITIAL_PASSWORD（长度={}），请用该环境变量登录，不要用页面默认的 admin123",
+                    passwordToSet.length());
         }, () -> log.warn("未找到 admin 用户，跳过密码 bootstrap"));
     }
 }
