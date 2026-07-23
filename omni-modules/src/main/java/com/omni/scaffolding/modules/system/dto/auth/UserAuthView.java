@@ -37,4 +37,9 @@ public class UserAuthView {
      * 是否启用。
      */
     private Boolean enabled;
+
+    /**
+     * 是否强制改密。
+     */
+    private Boolean mustChangePwd;
 }

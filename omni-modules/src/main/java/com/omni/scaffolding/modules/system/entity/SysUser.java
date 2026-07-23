@@ -8,6 +8,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
 /**
  * 系统用户实体（JPA 写模型）。
  *
@@ -84,6 +86,18 @@ public class SysUser extends BaseAuditableEntity {
      */
     @Column(nullable = false)
     private Boolean enabled = true;
+
+    /**
+     * 是否强制改密（新建 / 管理员重置后）。
+     */
+    @Column(name = "must_change_pwd", nullable = false)
+    private Boolean mustChangePwd = false;
+
+    /**
+     * 最近修改密码时间。
+     */
+    @Column(name = "pwd_changed_at")
+    private Instant pwdChangedAt;
 
     /**
      * 逻辑删除标记：0=正常，1=已删除。

@@ -100,6 +100,11 @@ public class CurrentUserView {
     private boolean dynamicPermission;
 
     /**
+     * 是否需要强制修改密码。
+     */
+    private boolean mustChangePwd;
+
+    /**
      * 侧栏菜单树（仅 DIR/MENU 且可见启用），不含 BUTTON。
      */
     private List<MenuTreeNode> menus = new ArrayList<>();

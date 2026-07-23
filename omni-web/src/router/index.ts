@@ -170,6 +170,10 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  if (userStore.mustChangePwd && to.path !== '/profile') {
+    return { path: '/profile', query: { forcePwd: '1' } }
+  }
+
   // 个人中心等无 permission 的页面直接放行
   const permission = typeof to.meta.permission === 'string' ? to.meta.permission : ''
   if (permission && !userStore.hasPermission(permission)) {

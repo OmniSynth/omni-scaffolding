@@ -1,6 +1,10 @@
-import type { ApiResponse, CurrentUserView, LoginRequest, LoginResponse } from '@/types/api'
+import type { ApiResponse, CaptchaChallenge, CurrentUserView, LoginRequest, LoginResponse } from '@/types/api'
 import { getData, postData, putData, request } from '@/utils/request'
 import { buildLoginSignHeaders } from '@/utils/sign'
+
+export function fetchCaptcha(): Promise<CaptchaChallenge> {
+  return getData<CaptchaChallenge>('/auth/captcha')
+}
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   const headers = await buildLoginSignHeaders(data.username, data.password)

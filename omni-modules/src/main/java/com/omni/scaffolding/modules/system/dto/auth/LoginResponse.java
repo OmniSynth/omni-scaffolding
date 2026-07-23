@@ -51,4 +51,9 @@ public class LoginResponse {
      * 权限编码列表（来自菜单 perms）。
      */
     private List<String> permissions;
+
+    /**
+     * 是否需要强制修改密码。
+     */
+    private boolean mustChangePwd;
 }

@@ -28,6 +28,7 @@ interface StoredProfile {
   dataScope?: string
   roles: string[]
   permissions: string[]
+  mustChangePwd?: boolean
 }
 
 function loadProfile(): StoredProfile | null {
@@ -71,6 +72,7 @@ function toStoredProfile(me: {
   dataScope?: string
   roles?: string[]
   permissions?: string[]
+  mustChangePwd?: boolean
 }): StoredProfile {
   return {
     userId: me.userId,
@@ -89,6 +91,7 @@ function toStoredProfile(me: {
     dataScope: me.dataScope,
     roles: me.roles || [],
     permissions: me.permissions || [],
+    mustChangePwd: !!me.mustChangePwd,
   }
 }
 
@@ -108,6 +111,7 @@ export const useUserStore = defineStore('user', () => {
   const permissions = computed(() => profile.value?.permissions || [])
   const dataScope = computed(() => profile.value?.dataScope || '')
   const deptId = computed(() => profile.value?.deptId)
+  const mustChangePwd = computed(() => !!profile.value?.mustChangePwd)
 
   function hasPermission(code: string): boolean {
     return permissions.value.includes(code)
@@ -143,6 +147,7 @@ export const useUserStore = defineStore('user', () => {
       dataScope: data.dataScope,
       roles: data.roles || [],
       permissions: data.permissions || [],
+      mustChangePwd: !!data.mustChangePwd,
     })
     await loadMe(true)
     return data
@@ -211,6 +216,7 @@ export const useUserStore = defineStore('user', () => {
     permissions,
     dataScope,
     deptId,
+    mustChangePwd,
     hasPermission,
     hasAnyPermission,
     login,

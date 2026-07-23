@@ -48,6 +48,16 @@ public final class RedisKeys {
     public static final String LOGIN_IP_RATE_PREFIX = "login:ip:";
 
     /**
+     * 登录图形验证码前缀：{@code login:captcha:{captchaId}}。
+     */
+    public static final String LOGIN_CAPTCHA_PREFIX = "login:captcha:";
+
+    /**
+     * 登录失败计数 / 锁定前缀：{@code login:fail:user:{username}}。
+     */
+    public static final String LOGIN_FAIL_USER_PREFIX = "login:fail:user:";
+
+    /**
      * Demo 商品 SKU 分布式锁前缀：{@code lock:product:sku:{sku}}。
      */
     public static final String LOCK_PRODUCT_SKU_PREFIX = "lock:product:sku:";
@@ -144,6 +154,26 @@ public final class RedisKeys {
      */
     public static String loginIpRate(String ip) {
         return LOGIN_IP_RATE_PREFIX + ip;
+    }
+
+    /**
+     * 登录验证码 Key。
+     *
+     * @param captchaId 验证码 ID
+     * @return Redis Key
+     */
+    public static String loginCaptcha(String captchaId) {
+        return LOGIN_CAPTCHA_PREFIX + captchaId;
+    }
+
+    /**
+     * 登录失败计数 Key（按用户名）。
+     *
+     * @param username 登录用户名
+     * @return Redis Key
+     */
+    public static String loginFailUser(String username) {
+        return LOGIN_FAIL_USER_PREFIX + username;
     }
 
     /**

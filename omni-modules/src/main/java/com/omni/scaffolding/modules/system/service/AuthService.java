@@ -20,8 +20,12 @@ import com.omni.scaffolding.modules.system.support.TreeBuilder;
 import com.omni.scaffolding.security.IssuedToken;
 import com.omni.scaffolding.security.JwtService;
 import com.omni.scaffolding.security.SecurityUtils;
+import com.omni.scaffolding.security.captcha.CaptchaChallenge;
+import com.omni.scaffolding.security.captcha.CaptchaService;
 import com.omni.scaffolding.security.datascope.DataScopeType;
+import com.omni.scaffolding.security.lock.LoginLockService;
 import com.omni.scaffolding.security.online.OnlineSessionService;
+import com.omni.scaffolding.security.password.PasswordPolicyValidator;
 import com.omni.scaffolding.security.sign.LoginSignService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -29,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -36,7 +41,7 @@ import java.util.List;
  *
  * <p>登录读路径走 MyBatis 联查（用户 + 角色 + 菜单权限 + 数据范围），一次组装 JWT Claims；
  * {@code GET /api/auth/me} 返回个人中心所需资料与侧栏菜单；支持本人修改密码。
- * 登录前校验 HMAC 加签；成功/失败均写入登录日志（独立事务）。
+ * 登录前校验验证码、失败锁定与 HMAC 加签；成功/失败均写入登录日志（独立事务）。
  */
 @Service
 @RequiredArgsConstructor
@@ -53,6 +58,16 @@ public class AuthService {
     private final LoginSignService loginSignService;
     private final OnlineSessionService onlineSessionService;
     private final FileContentSigner fileContentSigner;
+    private final CaptchaService captchaService;
+    private final LoginLockService loginLockService;
+    private final PasswordPolicyValidator passwordPolicyValidator;
+
+    /**
+     * 签发登录验证码挑战。
+     */
+    public CaptchaChallenge createCaptcha() {
+        return captchaService.createChallenge();
+    }
 
     /**
      * 校验加签、账号密码并签发 JWT。
@@ -76,6 +91,8 @@ public class AuthService {
                                String sign) {
         String username = request.getUsername() == null ? "" : request.getUsername().trim();
         try {
+            captchaService.verifyAndConsume(request.getCaptchaId(), request.getCaptchaCode());
+            loginLockService.assertNotLocked(username);
             loginSignService.verify(timestamp, nonce, sign, username, request.getPassword(), ip);
         } catch (BusinessException ex) {
             loginLogService.record(null, username, ip, userAgent, false, ex.getMessage());
@@ -84,6 +101,7 @@ public class AuthService {
 
         UserAuthView user = userQueryMapper.findAuthViewByUsername(username);
         if (user == null) {
+            loginLockService.recordFailure(username);
             loginLogService.record(null, username, ip, userAgent, false, "用户名或密码错误");
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "用户名或密码错误");
         }
@@ -92,10 +110,12 @@ public class AuthService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "用户已停用");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            loginLockService.recordFailure(username);
             loginLogService.record(user.getId(), username, ip, userAgent, false, "用户名或密码错误");
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "用户名或密码错误");
         }
 
+        loginLockService.clearFailures(username);
         // 登录前失效动态权限缓存，避免 Flyway/后台改菜单后仍命中旧权限导致 403
         permissionCacheEvictor.evictUser(user.getId());
         List<String> roles = userQueryMapper.findRoleCodesByUserId(user.getId());
@@ -106,9 +126,10 @@ public class AuthService {
         onlineSessionService.register(
                 issued.jti(), user.getId(), user.getUsername(), user.getDeptId(), ip, userAgent, issued.expireAt());
         loginLogService.record(user.getId(), username, ip, userAgent, true, "登录成功");
+        boolean mustChange = Boolean.TRUE.equals(user.getMustChangePwd());
         return new LoginResponse(
                 issued.accessToken(), "Bearer", user.getId(), user.getUsername(), user.getDeptId(),
-                dataScope, roles, permissions);
+                dataScope, roles, permissions, mustChange);
     }
 
     /**
@@ -130,6 +151,9 @@ public class AuthService {
         if (detail == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
         }
+        SysUser entity = userRepository.findById(userId)
+                .filter(u -> u.getDeleted() == 0)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
         boolean dynamic = securityProperties.getDynamicPermission().isEnabled();
         CurrentUserView view = new CurrentUserView();
         view.setUserId(detail.getId());
@@ -157,6 +181,7 @@ public class AuthService {
         view.setRoles(detail.getRoles());
         view.setPermissions(detail.getPermissions());
         view.setDynamicPermission(dynamic);
+        view.setMustChangePwd(Boolean.TRUE.equals(entity.getMustChangePwd()));
         List<MenuTreeNode> flat = menuQueryMapper.listSidebarMenusByUserId(userId);
         view.setMenus(TreeBuilder.buildMenuTree(flat));
         return view;
@@ -180,7 +205,10 @@ public class AuthService {
         if (request.getOldPassword().equals(request.getNewPassword())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "新密码不能与原密码相同");
         }
+        passwordPolicyValidator.validate(request.getNewPassword());
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePwd(false);
+        user.setPwdChangedAt(Instant.now());
         userRepository.save(user);
         permissionCacheEvictor.evictUser(userId);
     }

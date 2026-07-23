@@ -9,6 +9,7 @@ import com.omni.scaffolding.modules.system.dto.auth.CurrentUserView;
 import com.omni.scaffolding.modules.system.dto.auth.LoginRequest;
 import com.omni.scaffolding.modules.system.dto.auth.LoginResponse;
 import com.omni.scaffolding.modules.system.service.AuthService;
+import com.omni.scaffolding.security.captcha.CaptchaChallenge;
 import com.omni.scaffolding.security.sign.LoginSignHeaders;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 认证接口：登录换取 JWT；拉取当前用户与侧栏菜单；本人修改密码。
  *
- * <p>{@code /login} 在 Security 白名单中，需携带加签头（见 {@link LoginSignHeaders}），
+ * <p>{@code /login}、{@code /captcha} 在 Security 白名单中；登录需携带加签头（见 {@link LoginSignHeaders}），
  * 同时被 Resilience4j 方法级限流保护；{@code /me}、{@code /password} 需已认证。
  */
 @Tag(name = "Auth")
@@ -36,6 +37,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 获取登录图形验证码（未启用时 {@code enabled=false}）。
+     *
+     * @return 验证码挑战
+     */
+    @Operation(summary = "获取登录验证码")
+    @GetMapping("/captcha")
+    @RateLimiter(name = "api")
+    public ApiResponse<CaptchaChallenge> captcha() {
+        return ApiResponse.ok(authService.createCaptcha());
+    }
 
     /**
      * 登录并获取 JWT（需加签）。
@@ -104,4 +117,3 @@ public class AuthController {
         return ApiResponse.ok();
     }
 }
-

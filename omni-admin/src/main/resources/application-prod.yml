@@ -68,6 +68,7 @@ omni:
     # Druid 自带登录与 IP 白名单；默认关闭，开启后仍需由内网反向代理限制入口
     permit-all:
       - /api/auth/login
+      - /api/auth/captcha
       - /actuator/health/**
       - /actuator/info
       - /druid/**

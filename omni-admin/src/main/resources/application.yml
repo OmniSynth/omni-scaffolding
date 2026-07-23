@@ -282,6 +282,28 @@ omni:
       - /druid/**
       # 文件内容：JWT 或短时签名由 FileService 自行校验
       - /api/system/files/*/content
+      # 登录验证码
+      - /api/auth/captcha
+    # ---------- 登录验证码 ----------
+    captcha:
+      enabled: ${OMNI_SECURITY_CAPTCHA_ENABLED:true}
+      ttl-seconds: ${OMNI_SECURITY_CAPTCHA_TTL_SECONDS:120}
+      length: ${OMNI_SECURITY_CAPTCHA_LENGTH:4}
+    # ---------- 登录失败锁定（按用户名）----------
+    login-lock:
+      enabled: ${OMNI_SECURITY_LOGIN_LOCK_ENABLED:true}
+      max-failures: ${OMNI_SECURITY_LOGIN_LOCK_MAX_FAILURES:5}
+      lock-seconds: ${OMNI_SECURITY_LOGIN_LOCK_SECONDS:900}
+    # ---------- 密码策略（创建 / 重置 / 本人修改）----------
+    password-policy:
+      min-length: ${OMNI_SECURITY_PWD_MIN_LENGTH:6}
+      max-length: ${OMNI_SECURITY_PWD_MAX_LENGTH:64}
+      require-uppercase: ${OMNI_SECURITY_PWD_REQUIRE_UPPER:false}
+      require-lowercase: ${OMNI_SECURITY_PWD_REQUIRE_LOWER:false}
+      require-digit: ${OMNI_SECURITY_PWD_REQUIRE_DIGIT:false}
+      require-special: ${OMNI_SECURITY_PWD_REQUIRE_SPECIAL:false}
+      force-change-on-create: ${OMNI_SECURITY_PWD_FORCE_CHANGE_ON_CREATE:true}
+      force-change-on-reset: ${OMNI_SECURITY_PWD_FORCE_CHANGE_ON_RESET:true}
     # ---------- 登录加签（防脚本爆破：HMAC + 时间窗 + nonce + IP 限流）----------
     sign:
       enabled: ${OMNI_SECURITY_SIGN_ENABLED:true}

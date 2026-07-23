@@ -4,7 +4,10 @@ import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.api.PageQuery;
 import com.omni.scaffolding.common.api.PageResult;
 import com.omni.scaffolding.common.exception.BusinessException;
+import com.omni.scaffolding.common.notify.NotifyEvents;
+import com.omni.scaffolding.common.notify.NotifyMessage;
 import com.omni.scaffolding.common.util.IdGenerator;
+import com.omni.scaffolding.infra.notify.NotifyDispatcher;
 import com.omni.scaffolding.modules.system.dto.notice.NoticeSaveRequest;
 import com.omni.scaffolding.modules.system.dto.notice.NoticeView;
 import com.omni.scaffolding.modules.system.entity.SysNotice;
@@ -33,6 +36,7 @@ public class NoticeService {
     private final SysNoticeRepository noticeRepository;
     private final SysNoticeReadRepository noticeReadRepository;
     private final SysNoticeQueryMapper noticeQueryMapper;
+    private final NotifyDispatcher notifyDispatcher;
 
     /**
      * 分页查询公告（管理端）。
@@ -84,6 +88,9 @@ public class NoticeService {
         fillPublishMeta(notice, Boolean.TRUE.equals(request.getStatus()), true);
         // 需先刷盘，否则同事务内 MyBatis 读不到未 flush 的 JPA 写入
         noticeRepository.saveAndFlush(notice);
+        if (Boolean.TRUE.equals(notice.getStatus())) {
+            dispatchPublished(notice);
+        }
         return detail(notice.getId());
     }
 
@@ -100,8 +107,12 @@ public class NoticeService {
         boolean wasEnabled = Boolean.TRUE.equals(notice.getStatus());
         applyMutable(notice, request);
         boolean nowEnabled = Boolean.TRUE.equals(notice.getStatus());
-        fillPublishMeta(notice, nowEnabled, !wasEnabled && nowEnabled);
+        boolean firstEnable = !wasEnabled && nowEnabled;
+        fillPublishMeta(notice, nowEnabled, firstEnable);
         noticeRepository.saveAndFlush(notice);
+        if (firstEnable) {
+            dispatchPublished(notice);
+        }
         return detail(noticeId);
     }
 
@@ -117,8 +128,12 @@ public class NoticeService {
         SysNotice notice = requireNotice(noticeId);
         boolean wasEnabled = Boolean.TRUE.equals(notice.getStatus());
         notice.setStatus(status);
-        fillPublishMeta(notice, status, !wasEnabled && status);
+        boolean firstEnable = !wasEnabled && status;
+        fillPublishMeta(notice, status, firstEnable);
         noticeRepository.saveAndFlush(notice);
+        if (firstEnable) {
+            dispatchPublished(notice);
+        }
         return detail(noticeId);
     }
 
@@ -243,6 +258,18 @@ public class NoticeService {
             notice.setPublisherId(SecurityUtils.requireUserId());
             notice.setPublishTime(Instant.now());
         }
+    }
+
+    /**
+     * 公告首次发布时走通知 SPI（默认日志通道；可扩展邮件/短信）。
+     */
+    private void dispatchPublished(SysNotice notice) {
+        notifyDispatcher.dispatch(NotifyMessage.of(
+                NotifyEvents.NOTICE_PUBLISHED,
+                notice.getTitle(),
+                notice.getContent(),
+                notice.getType(),
+                notice.getId()));
     }
 
     /**

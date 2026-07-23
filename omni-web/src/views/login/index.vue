@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { Refresh } from '@element-plus/icons-vue'
+import { fetchCaptcha } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -9,15 +11,49 @@ const route = useRoute()
 const userStore = useUserStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const captchaEnabled = ref(false)
+const captchaImage = ref('')
+const captchaLoading = ref(false)
 
 const form = reactive({
   username: 'admin',
   password: 'admin123',
+  captchaId: '',
+  captchaCode: '',
 })
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captchaCode: [
+    {
+      validator: (_rule, value, callback) => {
+        if (captchaEnabled.value && !value) {
+          callback(new Error('请输入验证码'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+
+async function loadCaptcha() {
+  captchaLoading.value = true
+  try {
+    const data = await fetchCaptcha()
+    captchaEnabled.value = !!data.enabled
+    form.captchaId = data.captchaId || ''
+    captchaImage.value = data.imageBase64 || ''
+    form.captchaCode = ''
+  } catch {
+    captchaEnabled.value = false
+    form.captchaId = ''
+    captchaImage.value = ''
+  } finally {
+    captchaLoading.value = false
+  }
 }
 
 async function onSubmit() {
@@ -27,14 +63,27 @@ async function onSubmit() {
   await formRef.value.validate()
   loading.value = true
   try {
-    await userStore.login(form)
+    const result = await userStore.login({
+      username: form.username,
+      password: form.password,
+      captchaId: captchaEnabled.value ? form.captchaId : undefined,
+      captchaCode: captchaEnabled.value ? form.captchaCode : undefined,
+    })
     ElMessage.success('登录成功')
+    if (result.mustChangePwd) {
+      await router.replace({ path: '/profile', query: { forcePwd: '1' } })
+      return
+    }
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/home'
     await router.replace(redirect)
+  } catch {
+    await loadCaptcha()
   } finally {
     loading.value = false
   }
 }
+
+onMounted(loadCaptcha)
 </script>
 
 <template>
@@ -48,6 +97,21 @@ async function onSubmit() {
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input v-model="form.password" type="password" show-password autocomplete="current-password" />
+        </el-form-item>
+        <el-form-item v-if="captchaEnabled" label="验证码" prop="captchaCode">
+          <div class="captcha-row">
+            <el-input v-model="form.captchaCode" maxlength="8" placeholder="请输入验证码" />
+            <button
+              type="button"
+              class="captcha-btn"
+              :disabled="captchaLoading"
+              title="刷新验证码"
+              @click="loadCaptcha"
+            >
+              <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
+              <el-icon v-else><Refresh /></el-icon>
+            </button>
+          </div>
         </el-form-item>
         <el-button type="primary" class="submit" :loading="loading" @click="onSubmit">登录</el-button>
       </el-form>
@@ -85,5 +149,28 @@ h1 {
 .submit {
   width: 100%;
   margin-top: 8px;
+}
+.captcha-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.captcha-btn {
+  flex: 0 0 120px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  cursor: pointer;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.captcha-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 </style>

@@ -23,6 +23,8 @@ export interface PageResult<T> {
 export interface LoginRequest {
   username: string
   password: string
+  captchaId?: string
+  captchaCode?: string
 }
 
 export interface LoginResponse {
@@ -34,6 +36,13 @@ export interface LoginResponse {
   dataScope: string
   roles: string[]
   permissions: string[]
+  mustChangePwd?: boolean
+}
+
+export interface CaptchaChallenge {
+  enabled: boolean
+  captchaId?: string | null
+  imageBase64?: string | null
 }
 
 export interface MenuTreeNode {
@@ -71,6 +80,8 @@ export interface CurrentUserView {
   permissions: string[]
   /** 后端动态权限开关；开启时前端会在路由切换时刷新 /me */
   dynamicPermission?: boolean
+  /** 是否需要强制修改密码 */
+  mustChangePwd?: boolean
   menus: MenuTreeNode[]
 }
 

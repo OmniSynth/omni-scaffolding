@@ -83,6 +83,14 @@ public class TestRedisConfig {
             return values.get(key);
         });
 
+        when(ops.increment(anyString())).thenAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            purgeExpired(values, valueExpireAt, key);
+            long next = Long.parseLong(values.getOrDefault(key, "0")) + 1L;
+            values.put(key, Long.toString(next));
+            return next;
+        });
+
         when(template.hasKey(anyString())).thenAnswer(invocation -> {
             String key = invocation.getArgument(0);
             purgeExpired(values, valueExpireAt, key);

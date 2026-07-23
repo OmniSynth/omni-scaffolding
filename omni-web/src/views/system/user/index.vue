@@ -18,9 +18,12 @@ import { useUserStore } from '@/stores/user'
 import type { DeptView, PostView, RoleView, UserDetailView } from '@/types/api'
 import FileUpload from '@/components/FileUpload.vue'
 import FileImage from '@/components/FileImage.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const userStore = useUserStore()
 const canEditUser = computed(() => userStore.hasPermission('system:user:edit'))
+const { options: genderOptions } = useDict('sys_gender')
 
 const loading = ref(false)
 const rows = ref<UserDetailView[]>([])
@@ -71,12 +74,6 @@ const rules: FormRules = {
 
 const pwdRules: FormRules = {
   password: [{ required: true, min: 6, message: '密码至少 6 位', trigger: 'blur' }],
-}
-
-const genderLabel: Record<string, string> = {
-  UNKNOWN: '未知',
-  MALE: '男',
-  FEMALE: '女',
 }
 
 async function load() {
@@ -285,8 +282,10 @@ onMounted(async () => {
       <el-table-column prop="nickname" label="昵称" width="100" />
       <el-table-column prop="mobile" label="手机号" width="120" />
       <el-table-column prop="email" label="邮箱" min-width="160" />
-      <el-table-column label="性别" width="70">
-        <template #default="{ row }">{{ genderLabel[row.gender || 'UNKNOWN'] || row.gender }}</template>
+      <el-table-column label="性别" width="80">
+        <template #default="{ row }">
+          <DictTag type-code="sys_gender" :value="row.gender || 'UNKNOWN'" />
+        </template>
       </el-table-column>
       <el-table-column prop="deptName" label="部门" width="120" />
       <el-table-column label="岗位" min-width="120">
@@ -368,9 +367,9 @@ onMounted(async () => {
       </el-form-item>
       <el-form-item label="性别">
         <el-radio-group v-model="form.gender">
-          <el-radio value="UNKNOWN">未知</el-radio>
-          <el-radio value="MALE">男</el-radio>
-          <el-radio value="FEMALE">女</el-radio>
+          <el-radio v-for="opt in genderOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="部门" prop="deptId">

@@ -14,6 +14,7 @@ Java 21 + Spring Boot 3.4 单体脚手架，面向高并发、高可用业务场
 | 文档 | 用途 |
 |------|------|
 | [AGENTS.md](./AGENTS.md) | **AI / 贡献者强制规范**：模块边界、双轨持久化、`saveAndFlush`、CRUD 清单、权限与前端约定 |
+| [docs/ADOPT.md](./docs/ADOPT.md) | **换皮 / 裁剪清单**：改包名、去 demo、生产安全配置 |
 | [omni-web/README.md](./omni-web/README.md) | 管理端前端启动与目录说明 |
 | `.env.example` | Compose / 生产环境变量模板 |
 | `omni-admin/.../application*.yml` | 运行时配置（dev / prod / 公共） |
@@ -153,6 +154,9 @@ flowchart TB
 ### 安全与权限
 
 - **认证**：JWT（无状态，便于水平扩展）  
+- **登录验证码**：图形验证码（Redis 一次性）；`OMNI_SECURITY_CAPTCHA_ENABLED`  
+- **登录锁定**：连续失败按用户名锁定；`omni.security.login-lock.*`  
+- **密码策略**：复杂度 + 新建/重置强制改密；`omni.security.password-policy.*`  
 - **授权**：菜单 / 按钮权限码（如 `system:config:edit`），与前端 `v-permission`、`@PreAuthorize` 同字符串  
 - **数据范围**：`ALL` / `DEPT_AND_CHILD` / `DEPT` / `SELF`  
 - **登录加签**：可选 HMAC（nonce 防重放 + IP 限流）  
@@ -173,6 +177,7 @@ flowchart TB
 | 运维 | Redis / MySQL / 服务器信息 / Druid 监控页 |
 | 工具 | 在线代码生成（`tool.gen`，非 prod） |
 | 演示 | 商品 CRUD、分布式锁、可选 Kafka / ES |
+| 扩展点 | 文件 OSS 插件；通知通道 `NotifyChannel`（公告发布默认写日志） |
 
 ### Schema 迁移（Flyway）
 
@@ -180,6 +185,7 @@ flowchart TB
 |------|------|
 | `V1__init_schema.sql` | 系统表、RBAC、演示表、`sys_job`、**Quartz `QRTZ_*`**、种子数据 |
 | `V2__sys_file.sql` | `sys_file`、用户头像改文件 ID、文件管理菜单 |
+| `V3__user_password_policy.sql` | 用户强制改密 / 改密时间字段 |
 
 - 生产路径：`omni-admin/src/main/resources/db/migration/`  
 - 测试 H2：`omni-admin/src/test/resources/db/migration-h2/`（语义同步）  

@@ -20,4 +20,14 @@ public class LoginRequest {
      */
     @NotBlank(message = "密码不能为空")
     private String password;
+
+    /**
+     * 验证码 ID（{@code GET /api/auth/captcha} 返回；关闭验证码时可空）。
+     */
+    private String captchaId;
+
+    /**
+     * 验证码答案。
+     */
+    private String captchaCode;
 }

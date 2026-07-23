@@ -22,6 +22,7 @@ import com.omni.scaffolding.modules.system.repository.SysUserRepository;
 import com.omni.scaffolding.security.SecurityUtils;
 import com.omni.scaffolding.security.datascope.DataScopeQuery;
 import com.omni.scaffolding.security.datascope.DataScopeType;
+import com.omni.scaffolding.security.password.PasswordPolicyValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -63,6 +65,7 @@ public class UserService {
     private final DataScopeResolver dataScopeResolver;
     private final PermissionCacheEvictor permissionCacheEvictor;
     private final FileContentSigner fileContentSigner;
+    private final PasswordPolicyValidator passwordPolicyValidator;
 
     /**
      * 创建用户（JPA 写入 + 分配角色 / 岗位）。
@@ -83,10 +86,14 @@ public class UserService {
             throw new BusinessException(ErrorCode.CONFLICT, "用户名已存在");
         });
 
+        passwordPolicyValidator.validate(request.getPassword());
+
         SysUser user = new SysUser();
         user.setId(IdGenerator.nextId());
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setMustChangePwd(passwordPolicyValidator.isForceChangeOnCreate());
+        user.setPwdChangedAt(Instant.now());
         applyProfile(user,
                 request.getNickname(),
                 request.getRealName(),
@@ -205,7 +212,10 @@ public class UserService {
                 .filter(u -> u.getDeleted() == 0)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
         assertInScope(user);
+        passwordPolicyValidator.validate(request.getPassword());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setMustChangePwd(passwordPolicyValidator.isForceChangeOnReset());
+        user.setPwdChangedAt(Instant.now());
         userRepository.save(user);
     }
 

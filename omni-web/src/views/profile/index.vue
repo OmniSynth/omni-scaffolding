@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { changePassword } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import DictTag from '@/components/DictTag.vue'
 
+const route = useRoute()
 const userStore = useUserStore()
 const loading = ref(false)
 const pwdFormRef = ref<FormInstance>()
-
-const genderLabel: Record<string, string> = {
-  UNKNOWN: '未知',
-  MALE: '男',
-  FEMALE: '女',
-}
+const forcePwd = computed(() => route.query.forcePwd === '1' || userStore.mustChangePwd)
 
 const profile = computed(() => userStore.profile)
 
@@ -61,6 +59,7 @@ async function submitPassword() {
   pwdForm.newPassword = ''
   pwdForm.confirmPassword = ''
   pwdFormRef.value.resetFields()
+  await userStore.loadMe(true)
 }
 
 onMounted(refresh)
@@ -68,6 +67,16 @@ onMounted(refresh)
 
 <template>
   <div class="profile-page" v-loading="loading">
+    <el-alert
+      v-if="forcePwd"
+      type="warning"
+      :closable="false"
+      show-icon
+      title="安全提示"
+      description="当前账号需要修改密码后才能继续使用系统。"
+      class="force-alert"
+    />
+
     <el-card shadow="never" class="card">
       <template #header>
         <div class="card-header">个人资料</div>
@@ -86,7 +95,7 @@ onMounted(refresh)
         <el-descriptions-item label="昵称">{{ profile?.nickname || '-' }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ profile?.realName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="性别">
-          {{ genderLabel[profile?.gender || 'UNKNOWN'] || profile?.gender || '-' }}
+          <DictTag type-code="sys_gender" :value="profile?.gender || 'UNKNOWN'" />
         </el-descriptions-item>
         <el-descriptions-item label="手机号">{{ profile?.mobile || '-' }}</el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ profile?.email || '-' }}</el-descriptions-item>
@@ -128,6 +137,9 @@ onMounted(refresh)
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.force-alert {
+  margin-bottom: 0;
 }
 .card-header {
   font-weight: 600;

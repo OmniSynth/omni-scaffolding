@@ -69,7 +69,11 @@ omni:
   security:
     jwt:
       secret: test-secret-key-with-at-least-32-bytes!!
-    # 单测关闭加签，避免改造所有 login MockMvc 调用
+    # 单测关闭加签 / 验证码 / 锁定，避免改造所有 login MockMvc 调用
+    captcha:
+      enabled: false
+    login-lock:
+      enabled: false
     sign:
       enabled: false
       secret: test-login-sign-secret
@@ -77,6 +81,7 @@ omni:
       enabled: false
     permit-all:
       - /api/auth/login
+      - /api/auth/captcha
       - /actuator/health/**
       - /api/system/files/*/content
   rate-limit:

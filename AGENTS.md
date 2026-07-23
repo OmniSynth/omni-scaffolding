@@ -35,7 +35,7 @@ omni-admin → omni-modules / omni-demo / omni-quartz → omni-framework → omn
 
 | 放哪里 | 放什么 |
 |--------|--------|
-| `omni-common` | `ApiResponse`、`ErrorCode`、`BusinessException`、`BaseAuditableEntity`、`IdGenerator`、缓存 Key、文件 SPI、纯工具 |
+| `omni-common` | `ApiResponse`、`ErrorCode`、`BusinessException`、`BaseAuditableEntity`、`IdGenerator`、缓存 Key、文件 SPI、通知 SPI、纯工具 |
 | `omni-framework` | Security/JWT、限流、锁、Druid/读写切面、Local/MinIO/OSS 实现、全局异常、Jackson 扩展 |
 | `omni-modules` | 具体业务 Controller/Service/Entity/Mapper/DTO |
 | `omni-admin` | 仅启动类、配置、`db/migration`、测试 profile |
@@ -202,6 +202,7 @@ boolean existsByCodeAndDeleted(String code, Integer deleted);
 3. 动态权限开启时改菜单后依赖缓存失效（已有 `PermissionCacheEvictor`，菜单写路径会调用）
 4. 文件访问走统一文件 API（鉴权或短时签名），**不要**再做匿名静态 `/uploads`
 5. 可选能力用开关：`omni.kafka.enabled` / `omni.elasticsearch.enabled` / `omni.quartz.enabled`，默认勿强依赖中间件
+6. 登录面：验证码 / 失败锁定 / 密码策略见 `omni.security.captcha|login-lock|password-policy`；换皮清单见 [docs/ADOPT.md](./docs/ADOPT.md)
 
 ---
 
@@ -280,7 +281,8 @@ boolean existsByCodeAndDeleted(String code, Integer deleted);
 | 简单 CRUD | `modules/system/**/Post*` + `omni-web/.../post/` |
 | 树形 | `Dept*` / `Menu*` |
 | 主表 + 关联表 | `UserService`（角色/岗位）+ `RoleService`（菜单） |
-| 字典/参数缓存 | `DictService` / `ConfigService` |
+| 字典/参数缓存 | `DictService` / `ConfigService`；前端 `useDict` + `DictTag` |
+| 通知通道 SPI | `common.notify.NotifyChannel` + `infra.notify.NotifyDispatcher`（公告发布接入） |
 | 文件上传 | `FileService` + `FileUpload.vue` / `FileImage.vue` |
 | 可选中间件 | `omni-demo` + `omni.kafka` / `omni.elasticsearch` |
 | 读写切面 | `ReadWriteDataSourceAspect` |

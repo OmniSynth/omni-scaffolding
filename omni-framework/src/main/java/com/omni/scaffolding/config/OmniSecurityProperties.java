@@ -41,6 +41,21 @@ public class OmniSecurityProperties {
     private Sign sign = new Sign();
 
     /**
+     * 登录图形验证码。
+     */
+    private Captcha captcha = new Captcha();
+
+    /**
+     * 登录失败锁定（按用户名）。
+     */
+    private LoginLock loginLock = new LoginLock();
+
+    /**
+     * 密码复杂度与强制改密策略。
+     */
+    private PasswordPolicy passwordPolicy = new PasswordPolicy();
+
+    /**
      * 全局 IP 白名单兜底（逗号分隔），供 {@code @IpWhitelist} 使用；
      * 优先读表 {@code sys_ip_whitelist}，表无启用记录时才回退到本配置。
      */
@@ -131,5 +146,78 @@ public class OmniSecurityProperties {
          * IP 限流窗口秒数，默认 60。
          */
         private int ipWindowSeconds = 60;
+    }
+
+    /**
+     * 登录图形验证码。
+     */
+    @Data
+    public static class Captcha {
+
+        /**
+         * 是否启用；关闭时登录可不传 captcha。
+         */
+        private boolean enabled = true;
+
+        /**
+         * 验证码 Redis TTL（秒）。
+         */
+        private int ttlSeconds = 120;
+
+        /**
+         * 验证码字符数。
+         */
+        private int length = 4;
+    }
+
+    /**
+     * 连续登录失败后锁定账号（Redis）。
+     */
+    @Data
+    public static class LoginLock {
+
+        /**
+         * 是否启用。
+         */
+        private boolean enabled = true;
+
+        /**
+         * 窗口内最大失败次数。
+         */
+        private int maxFailures = 5;
+
+        /**
+         * 锁定时长（秒），同时作为失败计数窗口。
+         */
+        private int lockSeconds = 900;
+    }
+
+    /**
+     * 密码策略：创建/重置/本人修改时校验。
+     */
+    @Data
+    public static class PasswordPolicy {
+
+        private int minLength = 6;
+
+        private int maxLength = 64;
+
+        private boolean requireUppercase = false;
+
+        private boolean requireLowercase = false;
+
+        private boolean requireDigit = false;
+
+        private boolean requireSpecial = false;
+
+        /**
+         * 新建用户后要求首次登录强制改密。
+         */
+        private boolean forceChangeOnCreate = true;
+
+        /**
+         * 管理员重置密码后要求强制改密。
+         */
+        private boolean forceChangeOnReset = true;
     }
 }
