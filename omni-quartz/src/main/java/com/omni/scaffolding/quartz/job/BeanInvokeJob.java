@@ -3,12 +3,11 @@ package com.omni.scaffolding.quartz.job;
 import com.omni.scaffolding.quartz.support.JobDataKeys;
 import com.omni.scaffolding.quartz.support.JobExecutionRecord;
 import com.omni.scaffolding.quartz.support.JobExecutionRecorder;
-import com.omni.scaffolding.quartz.support.JobInvokeUtils;
+import com.omni.scaffolding.quartz.support.QuartzJobRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import java.time.Instant;
@@ -16,14 +15,14 @@ import java.time.Instant;
 /**
  * 允许并发的 Bean 方法调用 Job。
  *
- * <p>从 JobDataMap 读取调用目标，经 {@link JobInvokeUtils} 反射执行；
+ * <p>从 JobDataMap 读取调用目标，经 {@link QuartzJobRegistry} 白名单执行；
  * 若存在 {@link JobExecutionRecorder} 则记录执行日志。
  */
 @Slf4j
 public class BeanInvokeJob extends QuartzJobBean {
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private QuartzJobRegistry quartzJobRegistry;
 
     @Autowired(required = false)
     private JobExecutionRecorder executionRecorder;
@@ -41,7 +40,7 @@ public class BeanInvokeJob extends QuartzJobBean {
         String message = "OK";
         Exception failure = null;
         try {
-            JobInvokeUtils.invoke(applicationContext, invokeTarget, jobParams);
+            quartzJobRegistry.invoke(invokeTarget, jobParams);
         } catch (Exception ex) {
             success = false;
             message = rootMessage(ex);

@@ -69,6 +69,11 @@ public class GenColumnConfig {
     private String queryType = "NONE";
 
     /**
+     * 可选字典类型编码；配置后为读模型生成 {@code @DictText}。
+     */
+    private String dictType;
+
+    /**
      * 是否审计/系统字段（created_at 等，一般不进表单）。
      */
     private boolean audit;

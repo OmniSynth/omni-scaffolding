@@ -4,6 +4,7 @@ import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.cache.CacheNames;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.config.OmniSecurityProperties;
+import com.omni.scaffolding.infra.file.FileContentSigner;
 import com.omni.scaffolding.modules.system.dto.ChangePasswordRequest;
 import com.omni.scaffolding.modules.system.dto.CurrentUserView;
 import com.omni.scaffolding.modules.system.dto.LoginRequest;
@@ -51,6 +52,7 @@ public class AuthService {
     private final LoginLogService loginLogService;
     private final LoginSignService loginSignService;
     private final OnlineSessionService onlineSessionService;
+    private final FileContentSigner fileContentSigner;
 
     /**
      * 校验加签、账号密码并签发 JWT。
@@ -138,7 +140,12 @@ public class AuthService {
         view.setMobile(detail.getMobile());
         view.setEmail(detail.getEmail());
         view.setGender(detail.getGender());
-        view.setAvatar(detail.getAvatar());
+        view.setAvatarFileId(detail.getAvatarFileId());
+        if (detail.getAvatarFileId() != null) {
+            long expire = fileContentSigner.defaultExpireEpoch();
+            String sign = fileContentSigner.sign(detail.getAvatarFileId(), expire);
+            view.setAvatarUrl(fileContentSigner.buildContentPath(detail.getAvatarFileId(), expire, sign));
+        }
         view.setDeptId(detail.getDeptId());
         view.setDeptName(detail.getDeptName());
         view.setPosts(detail.getPosts());

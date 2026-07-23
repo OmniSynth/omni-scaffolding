@@ -1,4 +1,4 @@
-import type { MysqlTableView, PageResult } from '@/types/api'
+import type { DictTypeView, MysqlTableView, PageResult } from '@/types/api'
 import { downloadBlobPost, getData, postData } from '@/utils/request'
 
 export type GenQueryType = 'NONE' | 'EQ' | 'LIKE' | 'BETWEEN'
@@ -16,6 +16,7 @@ export interface GenColumnConfig {
   form: boolean
   required: boolean
   queryType: GenQueryType
+  dictType?: string
   audit: boolean
   logicDelete: boolean
 }
@@ -56,6 +57,10 @@ export function fetchGenTables(params?: {
 
 export function fetchGenTableConfig(table: string): Promise<GenTableConfig> {
   return getData<GenTableConfig>(`/tool/gen/tables/${encodeURIComponent(table)}/columns`)
+}
+
+export function fetchGenDictTypes(): Promise<DictTypeView[]> {
+  return getData<DictTypeView[]>('/tool/gen/dict-types')
 }
 
 export function previewGenCode(config: GenTableConfig): Promise<GenFileView[]> {

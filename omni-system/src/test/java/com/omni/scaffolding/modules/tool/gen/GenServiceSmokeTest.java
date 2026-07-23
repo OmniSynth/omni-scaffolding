@@ -61,6 +61,21 @@ class GenServiceSmokeTest {
         assertTrue(mapperJava.contains("createdAtFrom"));
         assertTrue(mapperJava.contains("createdAtTo"));
 
+        String viewJava = byPath.entrySet().stream()
+                .filter(e -> e.getKey().endsWith("NoticeView.java"))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(viewJava.contains("@DictText(\"sys_normal_disable\")"));
+
+        String apiTs = byPath.entrySet().stream()
+                .filter(e -> e.getKey().endsWith("/notice.ts"))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(apiTs.contains("statusText?: string"));
+        assertTrue(vue.contains("row.statusText ?? row.status"));
+
         byte[] zip = service.downloadZip(cfg);
         assertNotNull(zip);
         assertTrue(zip.length > 100);
@@ -93,6 +108,11 @@ class GenServiceSmokeTest {
                 col("version", "bigint", "版本", "version", "Long", false, false, false, false, false, false, "NONE", true, false),
                 col("deleted", "int", "删除标记", "deleted", "Integer", false, false, false, false, false, false, "NONE", false, true)
         ));
+        cfg.getColumns().stream()
+                .filter(column -> "status".equals(column.getJavaField()))
+                .findFirst()
+                .orElseThrow()
+                .setDictType("sys_normal_disable");
         return cfg;
     }
 

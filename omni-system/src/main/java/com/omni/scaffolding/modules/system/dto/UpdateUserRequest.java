@@ -50,10 +50,9 @@ public class UpdateUserRequest {
     private String gender;
 
     /**
-     * 头像路径。
+     * 头像文件 ID。
      */
-    @Size(max = 512, message = "头像路径过长")
-    private String avatar;
+    private Long avatarFileId;
 
     /**
      * 所属部门 ID。

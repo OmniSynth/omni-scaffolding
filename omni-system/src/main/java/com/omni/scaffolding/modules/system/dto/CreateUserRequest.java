@@ -63,10 +63,9 @@ public class CreateUserRequest {
     private String gender = "UNKNOWN";
 
     /**
-     * 头像路径（通常先调上传接口拿到 URL）。
+     * 头像文件 ID（先调统一文件上传接口拿到 id）。
      */
-    @Size(max = 512, message = "头像路径过长")
-    private String avatar;
+    private Long avatarFileId;
 
     /**
      * 所属部门 ID，须在当前登录用户数据范围内。

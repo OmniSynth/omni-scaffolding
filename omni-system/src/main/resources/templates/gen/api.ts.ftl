@@ -4,6 +4,9 @@ import { deleteData, getData, postData, putData } from '@/utils/request'
 export interface ${functionCamel}View {
 <#list viewColumns as col>
   ${col.javaField}<#if col.javaType == "String" || col.javaType == "Instant">?: string<#elseif col.javaType == "Boolean">?: boolean<#elseif col.javaType == "Integer" || col.javaType == "Long" || col.javaType == "BigDecimal">?: number<#else>?: unknown</#if>
+<#if col.dictType?? && col.dictType?has_content>
+  ${col.javaField}Text?: string
+</#if>
 </#list>
 }
 

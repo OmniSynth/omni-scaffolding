@@ -73,7 +73,7 @@ onMounted(refresh)
         <div class="card-header">个人资料</div>
       </template>
       <div class="profile-head">
-        <el-avatar :size="72" :src="profile?.avatar || undefined">
+        <el-avatar :size="72" :src="profile?.avatarUrl || undefined">
           {{ (userStore.displayName || '?').slice(0, 1) }}
         </el-avatar>
         <div class="profile-head-text">

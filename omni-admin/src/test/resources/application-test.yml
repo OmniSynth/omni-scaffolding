@@ -1,6 +1,7 @@
 # =============================================================================
 # 测试环境配置（profile=test）
 # 使用内存 H2（MySQL 兼容模式）+ 简易缓存，并排除真实 Redis 自动配置
+# 仅注册 master；strict=false 时 @DS(slave)/读路由回落主库
 # =============================================================================
 
 spring:
@@ -9,20 +10,25 @@ spring:
       enabled: true
 
   datasource:
-    # MODE=MySQL：尽量贴近生产 SQL 方言；库随 JVM 进程销毁
-    url: jdbc:h2:mem:omni;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-    druid:
-      # 单测关闭监控页、Web 统计与 Wall，避免干扰 Flyway / MockMvc
-      stat-view-servlet:
-        enabled: false
-      web-stat-filter:
-        enabled: false
-      filter:
-        wall:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          # MODE=MySQL：尽量贴近生产 SQL 方言；库随 JVM 进程销毁
+          url: jdbc:h2:mem:omni;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+          username: sa
+          password:
+          driver-class-name: org.h2.Driver
+      druid:
+        # 单测关闭监控页、Web 统计与 Wall，避免干扰 Flyway / MockMvc
+        stat-view-servlet:
           enabled: false
+        web-stat-filter:
+          enabled: false
+        filter:
+          wall:
+            enabled: false
 
   jpa:
     hibernate:
@@ -41,6 +47,7 @@ spring:
 
   autoconfigure:
     exclude:
+      - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
       # 单测直接排除（EPP 可能早于 test profile 属性生效）
@@ -55,9 +62,10 @@ spring:
       - org.springframework.boot.actuate.autoconfigure.data.elasticsearch.ElasticsearchReactiveHealthContributorAutoConfiguration
 
 omni:
-  upload:
-    base-dir: ./target/test-uploads
-    url-prefix: /uploads
+  file:
+    storage-type: local
+    local:
+      base-dir: ./target/test-uploads
   security:
     jwt:
       secret: test-secret-key-with-at-least-32-bytes!!
@@ -70,7 +78,7 @@ omni:
     permit-all:
       - /api/auth/login
       - /actuator/health/**
-      - /uploads/**
+      - /api/system/files/*/content
   rate-limit:
     # 单测关闭限流，避免干扰断言
     enabled: false

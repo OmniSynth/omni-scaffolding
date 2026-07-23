@@ -61,7 +61,8 @@ export interface CurrentUserView {
   mobile?: string
   email?: string
   gender?: string
-  avatar?: string
+  avatarFileId?: number
+  avatarUrl?: string
   deptId: number
   deptName?: string
   posts?: string[]
@@ -81,7 +82,8 @@ export interface UserDetailView {
   mobile?: string
   email?: string
   gender?: string
-  avatar?: string
+  avatarFileId?: number
+  avatarUrl?: string
   deptId: number
   deptName?: string
   enabled: boolean

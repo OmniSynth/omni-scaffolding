@@ -5,16 +5,33 @@
 
 spring:
   datasource:
-    # useSSL=true 建议生产开启；证书与网络策略按运维规范调整
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      # 可按实例数与 DB max_connections 通过环境变量覆盖
-      maximum-pool-size: ${HIKARI_MAX_POOL:20}
-      minimum-idle: ${HIKARI_MIN_IDLE:5}
-      connection-timeout: 3000
+    dynamic:
+      datasource:
+        master:
+          # useSSL=true 建议生产开启；证书与网络策略按运维规范调整
+          url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+          username: ${DB_USER}
+          password: ${DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        # 从库；未配 DB_SLAVE_* 时与主库同址（单库部署）
+        slave:
+          url: jdbc:mysql://${DB_SLAVE_HOST:${DB_HOST}}:${DB_SLAVE_PORT:${DB_PORT:3306}}/${DB_SLAVE_NAME:${DB_NAME}}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+          username: ${DB_SLAVE_USER:${DB_USER}}
+          password: ${DB_SLAVE_PASSWORD:${DB_PASSWORD}}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+      # 公共配置使用 Druid，生产参数也必须写在 dynamic.druid 下
+      druid:
+        max-active: ${DRUID_MAX_ACTIVE:20}
+        min-idle: ${DRUID_MIN_IDLE:5}
+        max-wait: ${DRUID_MAX_WAIT:3000}
+        stat-view-servlet:
+          # 生产默认关闭；确需使用时显式开启，并通过反向代理/防火墙限制内网访问
+          enabled: ${DRUID_ENABLED:false}
+          # 默认仅本机可访问，支持逗号分隔 IP/CIDR，例如 10.0.0.0/8
+          allow: ${DRUID_ALLOW:127.0.0.1}
+          login-username: ${DRUID_USERNAME:druid}
+          # 未配置时使用每次启动生成的随机值，避免弱口令意外开放
+          login-password: ${DRUID_PASSWORD:${random.uuid}}
 
   data:
     redis:
@@ -28,6 +45,31 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: validate
+
+# 生产关闭 OpenAPI 文档与 Swagger UI
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+omni:
+  security:
+    # 首次生产启动用于替换迁移脚本中的演示管理员密码；后续用户自行改密不会被重置
+    bootstrap-admin-password: ${OMNI_ADMIN_INITIAL_PASSWORD}
+    jwt:
+      # 无默认值：生产缺少密钥时拒绝启动，至少 32 字节
+      secret: ${OMNI_JWT_SECRET}
+    sign:
+      secret: ${OMNI_SIGN_SECRET}
+    # 覆盖公共白名单：生产不匿名开放 Swagger、Prometheus 和 metrics
+    # Druid 自带登录与 IP 白名单；默认关闭，开启后仍需由内网反向代理限制入口
+    permit-all:
+      - /api/auth/login
+      - /actuator/health/**
+      - /actuator/info
+      - /druid/**
+      - /api/system/files/*/content
 
 logging:
   level:

@@ -6,6 +6,7 @@ import com.omni.scaffolding.common.api.PageResult;
 import com.omni.scaffolding.common.cache.CacheNames;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.common.util.IdGenerator;
+import com.omni.scaffolding.infra.file.FileContentSigner;
 import com.omni.scaffolding.modules.system.dto.CreateUserRequest;
 import com.omni.scaffolding.modules.system.dto.ResetPasswordRequest;
 import com.omni.scaffolding.modules.system.dto.UpdateUserRequest;
@@ -61,6 +62,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final DataScopeResolver dataScopeResolver;
     private final PermissionCacheEvictor permissionCacheEvictor;
+    private final FileContentSigner fileContentSigner;
 
     /**
      * 创建用户（JPA 写入 + 分配角色 / 岗位）。
@@ -91,7 +93,7 @@ public class UserService {
                 request.getMobile(),
                 request.getEmail(),
                 request.getGender(),
-                request.getAvatar());
+                request.getAvatarFileId());
         user.setDeptId(request.getDeptId());
         user.setEnabled(request.getEnabled() == null || request.getEnabled());
         user.setDeleted(0);
@@ -128,7 +130,7 @@ public class UserService {
                 request.getMobile(),
                 request.getEmail(),
                 request.getGender(),
-                request.getAvatar());
+                request.getAvatarFileId());
         user.setDeptId(request.getDeptId());
         user.setEnabled(request.getEnabled());
         userRepository.save(user);
@@ -222,6 +224,7 @@ public class UserService {
         if (!dataScopeResolver.canAccessUser(detail.getId(), detail.getDeptId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作该用户");
         }
+        fillAvatarUrl(detail);
         return detail;
     }
 
@@ -241,7 +244,8 @@ public class UserService {
         if (total == 0) {
             return pq.toResult(0, List.of());
         }
-        return pq.toResult(total, userQueryMapper.searchUsers(keyword, ds, pq.getSize(), pq.getOffset()));
+        return pq.toResult(total, userQueryMapper.searchUsers(keyword, ds, pq.getSize(), pq.getOffset())
+                .stream().peek(this::fillAvatarUrl).toList());
     }
 
     /**
@@ -319,7 +323,7 @@ public class UserService {
                               String mobile,
                               String email,
                               String gender,
-                              String avatar) {
+                              Long avatarFileId) {
         user.setNickname(nickname);
         user.setRealName(blankToNull(realName));
         user.setMobile(blankToNull(mobile));
@@ -334,7 +338,7 @@ public class UserService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "性别取值无效");
         }
         user.setGender(g);
-        user.setAvatar(blankToNull(avatar));
+        user.setAvatarFileId(avatarFileId);
     }
 
     /**
@@ -368,7 +372,17 @@ public class UserService {
         if (detail == null) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "用户已创建但读取失败");
         }
+        fillAvatarUrl(detail);
         return detail;
+    }
+
+    private void fillAvatarUrl(UserDetailView detail) {
+        if (detail == null || detail.getAvatarFileId() == null) {
+            return;
+        }
+        long expire = fileContentSigner.defaultExpireEpoch();
+        String sign = fileContentSigner.sign(detail.getAvatarFileId(), expire);
+        detail.setAvatarUrl(fileContentSigner.buildContentPath(detail.getAvatarFileId(), expire, sign));
     }
 
     /**

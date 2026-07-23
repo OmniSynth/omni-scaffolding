@@ -68,10 +68,10 @@ public class SysUser extends BaseAuditableEntity {
     private String gender = "UNKNOWN";
 
     /**
-     * 头像访问路径，如 {@code /uploads/avatars/xxx.png}。
+     * 头像文件 ID，关联 {@code sys_file.id}。
      */
-    @Column(length = 512)
-    private String avatar;
+    @Column(name = "avatar_file_id")
+    private Long avatarFileId;
 
     /**
      * 所属部门 ID，关联 {@code sys_dept.id}；数据范围过滤依赖此字段。

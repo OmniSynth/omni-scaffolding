@@ -1,6 +1,8 @@
 package com.omni.scaffolding.modules.ops.service;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
+import com.omni.scaffolding.common.persistence.DataSourceKeys;
 import com.omni.scaffolding.modules.ops.dto.ServerRuntimeView;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
@@ -194,7 +196,7 @@ public class ServerInfoService {
     }
 
     /**
-     * 探测并填充数据源连接池状态（Druid / HikariCP 等）。
+     * 探测并填充数据源连接池状态（动态主从 / Druid / HikariCP 等）。
      *
      * @param info 数据源信息容器
      */
@@ -206,6 +208,33 @@ public class ServerInfoService {
             return;
         }
         info.setAvailable(true);
+        if (dataSource instanceof DynamicRoutingDataSource dynamic) {
+            Map<String, DataSource> dataSources = dynamic.getDataSources();
+            DataSource master = dataSources.get(DataSourceKeys.MASTER);
+            if (master == null && !dataSources.isEmpty()) {
+                master = dataSources.values().iterator().next();
+            }
+            if (master == null) {
+                info.setAvailable(false);
+                info.setMessage("动态数据源未注册任何节点");
+                return;
+            }
+            fillPoolMetrics(master, info);
+            String keys = String.join(",", dataSources.keySet());
+            String prefix = info.getPoolType() == null ? "Dynamic" : info.getPoolType() + "/Dynamic";
+            info.setPoolType(prefix);
+            String existing = info.getMessage();
+            info.setMessage((existing == null || existing.isBlank() ? "" : existing + "; ")
+                    + "dynamic keys=[" + keys + "], metrics=master");
+            return;
+        }
+        fillPoolMetrics(dataSource, info);
+    }
+
+    /**
+     * 填充具体连接池指标。
+     */
+    private void fillPoolMetrics(DataSource dataSource, ServerRuntimeView.DataSourceInfo info) {
         if (dataSource instanceof DruidDataSource druid) {
             info.setPoolType("Druid");
             info.setJdbcUrl(maskSensitiveValue(druid.getUrl()));
@@ -237,10 +266,23 @@ public class ServerInfoService {
             }
         } else {
             info.setPoolType(dataSource.getClass().getSimpleName());
-            info.setJdbcUrl(maskSensitiveValue(environment.getProperty("spring.datasource.url")));
-            info.setUsername(environment.getProperty("spring.datasource.username"));
-            info.setDriverClassName(environment.getProperty("spring.datasource.driver-class-name"));
+            info.setJdbcUrl(maskSensitiveValue(firstNonBlank(
+                    environment.getProperty("spring.datasource.dynamic.datasource.master.url"),
+                    environment.getProperty("spring.datasource.url"))));
+            info.setUsername(firstNonBlank(
+                    environment.getProperty("spring.datasource.dynamic.datasource.master.username"),
+                    environment.getProperty("spring.datasource.username")));
+            info.setDriverClassName(firstNonBlank(
+                    environment.getProperty("spring.datasource.dynamic.datasource.master.driver-class-name"),
+                    environment.getProperty("spring.datasource.driver-class-name")));
         }
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (StringUtils.hasText(first)) {
+            return first;
+        }
+        return second;
     }
 
     /**

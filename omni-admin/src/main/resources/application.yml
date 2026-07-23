@@ -20,6 +20,11 @@ spring:
     # 优雅停机时，单阶段最长等待时间
     timeout-per-shutdown-phase: 30s
 
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
+
   jackson:
     serialization:
       # 日期序列化为 ISO-8601 字符串，而非时间戳
@@ -67,49 +72,60 @@ spring:
       # 不缓存 null，防止长期占位；空值短 TTL 需业务侧自行处理
       cache-null-values: false
 
-  # ---------- 数据源连接池（Druid）----------
-  # 注意：虚拟线程再多也不能无脑放大连接池，按 DB max_connections / 实例数校准
+  # 排除 Druid 自身 DataSource 自动配置，改由 dynamic-datasource 统一创建主从池
+  autoconfigure:
+    exclude:
+      - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
+
+  # ---------- 数据源（主从读写分离 + Druid）----------
+  # primary=master：JPA / Flyway / Quartz 默认走主库
+  # slave：MyBatis *QueryMapper 复杂读走从库（JPA 读仍走主库，避免复制延迟）
+  # 未单独配置从库时与主库同址即可（单库可跑）；strict=false 时缺从库会回落 master
+  # 注意：虚拟线程再多也不能无脑放大连接池，按 DB max_connections / 实例数校准（主+从各一池）
   datasource:
-    type: com.alibaba.druid.pool.DruidDataSource
-    druid:
-      initial-size: 5
-      min-idle: 5
-      max-active: 20
-      # 获取连接超时（毫秒），超时快速失败形成背压
-      max-wait: 3000
-      # 空闲连接检测
-      time-between-eviction-runs-millis: 60000
-      min-evictable-idle-time-millis: 300000
-      max-evictable-idle-time-millis: 900000
-      validation-query: SELECT 1
-      test-while-idle: true
-      test-on-borrow: false
-      test-on-return: false
-      pool-prepared-statements: true
-      max-pool-prepared-statement-per-connection-size: 20
-      # 监控页 /druid/*（前端运维菜单 iframe 内嵌）
-      stat-view-servlet:
-        enabled: true
-        url-pattern: /druid/*
-        reset-enable: false
-        # 生产务必用环境变量覆盖
-        login-username: ${DRUID_USERNAME:admin}
-        login-password: ${DRUID_PASSWORD:admin123}
-        allow:
-      web-stat-filter:
-        enabled: true
-        url-pattern: /*
-        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/actuator/*,/uploads/*"
-      filter:
-        stat:
+    dynamic:
+      primary: master
+      strict: false
+      grace-destroy: true
+      druid:
+        initial-size: 5
+        min-idle: 5
+        max-active: 20
+        # 获取连接超时（毫秒），超时快速失败形成背压
+        max-wait: 3000
+        # 空闲连接检测
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 300000
+        max-evictable-idle-time-millis: 900000
+        validation-query: SELECT 1
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+        pool-prepared-statements: true
+        max-pool-prepared-statement-per-connection-size: 20
+        # 监控页 /druid/*（前端运维菜单 iframe 内嵌）
+        stat-view-servlet:
           enabled: true
-          log-slow-sql: true
-          slow-sql-millis: 2000
-          # Flyway DDL 等语句 merge 易报解析噪音，关闭即可
-          merge-sql: false
-        # Wall 对 Flyway DDL / 部分方言解析不友好，默认关闭；需要时可单独开启并调白名单
-        wall:
-          enabled: false
+          url-pattern: /druid/*
+          reset-enable: false
+          # 生产务必用环境变量覆盖
+          login-username: ${DRUID_USERNAME:admin}
+          login-password: ${DRUID_PASSWORD:admin123}
+          allow:
+        web-stat-filter:
+          enabled: true
+          url-pattern: /*
+          exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/actuator/*,/uploads/*"
+        filter:
+          stat:
+            enabled: true
+            log-slow-sql: true
+            slow-sql-millis: 2000
+            # Flyway DDL 等语句 merge 易报解析噪音，关闭即可
+            merge-sql: false
+          # Wall 对 Flyway DDL / 部分方言解析不友好，默认关闭；需要时可单独开启并调白名单
+          wall:
+            enabled: false
 
   # ---------- Elasticsearch Client（仅 omni.elasticsearch.enabled=true 时由自动配置加载）----------
   elasticsearch:
@@ -217,11 +233,32 @@ springdoc:
 
 # ---------- 业务自定义配置 ----------
 omni:
-  # 本地上传（头像等）
-  upload:
-    base-dir: ${OMNI_UPLOAD_DIR:./data/uploads}
-    url-prefix: /uploads
-    avatar-max-bytes: 2097152
+  # 统一文件存储（local / minio / oss）；内容经鉴权或短时签名访问
+  file:
+    storage-type: ${OMNI_FILE_STORAGE_TYPE:local}
+    max-bytes: ${OMNI_FILE_MAX_BYTES:20971520}
+    avatar-max-bytes: ${OMNI_FILE_AVATAR_MAX_BYTES:2097152}
+    sign-secret: ${OMNI_FILE_SIGN_SECRET:}
+    sign-ttl-seconds: ${OMNI_FILE_SIGN_TTL_SECONDS:900}
+    physical-delete: true
+    local:
+      base-dir: ${OMNI_UPLOAD_DIR:./data/uploads}
+    minio:
+      endpoint: ${OMNI_MINIO_ENDPOINT:}
+      access-key: ${OMNI_MINIO_ACCESS_KEY:}
+      secret-key: ${OMNI_MINIO_SECRET_KEY:}
+      bucket: ${OMNI_MINIO_BUCKET:omni}
+      path-style: true
+      dir-prefix: ${OMNI_MINIO_DIR_PREFIX:}
+    oss:
+      provider: ${OMNI_OSS_PROVIDER:aliyun}
+      providers:
+        aliyun:
+          endpoint: ${OMNI_OSS_ALIYUN_ENDPOINT:}
+          access-key-id: ${OMNI_OSS_ALIYUN_ACCESS_KEY_ID:}
+          access-key-secret: ${OMNI_OSS_ALIYUN_ACCESS_KEY_SECRET:}
+          bucket: ${OMNI_OSS_ALIYUN_BUCKET:}
+          dir-prefix: ${OMNI_OSS_ALIYUN_DIR_PREFIX:}
   security:
     jwt:
       # 生产务必用环境变量 OMNI_JWT_SECRET 覆盖（至少 32 字节）
@@ -241,8 +278,8 @@ omni:
       - /swagger-ui.html
       # Druid 监控页自带登录；iframe 无法携带 Bearer
       - /druid/**
-      # 头像等静态资源（img 标签无法带 Bearer）
-      - /uploads/**
+      # 文件内容：JWT 或短时签名由 FileService 自行校验
+      - /api/system/files/*/content
     # ---------- 登录加签（防脚本爆破：HMAC + 时间窗 + nonce + IP 限流）----------
     sign:
       enabled: ${OMNI_SECURITY_SIGN_ENABLED:true}
@@ -271,8 +308,8 @@ omni:
         - /v3/api-docs/**
         - /swagger-ui/**
         - /swagger-ui.html
-        - /api/system/users/avatar
-        - /uploads/**
+        - /api/system/files
+        - /api/system/files/**
   rate-limit:
     # Redis 分布式入口限流（多实例共享计数）
     enabled: true

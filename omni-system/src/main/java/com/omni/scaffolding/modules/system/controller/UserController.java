@@ -5,14 +5,12 @@ import com.omni.scaffolding.common.api.PageResult;
 import com.omni.scaffolding.common.audit.OperLog;
 import com.omni.scaffolding.common.desensitize.WithoutDesensitize;
 import com.omni.scaffolding.common.excel.ExcelExportHelper;
-import com.omni.scaffolding.modules.system.dto.AvatarUploadResult;
 import com.omni.scaffolding.modules.system.dto.CreateUserRequest;
 import com.omni.scaffolding.modules.system.dto.ResetPasswordRequest;
 import com.omni.scaffolding.modules.system.dto.UpdateUserRequest;
 import com.omni.scaffolding.modules.system.dto.UserDetailView;
 import com.omni.scaffolding.modules.system.dto.UserEnabledRequest;
 import com.omni.scaffolding.modules.system.dto.excel.UserExportRow;
-import com.omni.scaffolding.modules.system.service.AvatarStorageService;
 import com.omni.scaffolding.modules.system.service.UserService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,7 +18,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,15 +27,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户管理接口。
  *
  * <p>权限码精确到按钮：{@code system:user:query/add/edit/remove/resetPwd/export}。
- * 创建走 JPA，详情与搜索走 MyBatis，并按角色数据范围过滤；支持头像上传。
+ * 创建走 JPA，详情与搜索走 MyBatis，并按角色数据范围过滤；头像存 {@code avatarFileId}，上传走统一文件 API。
  */
 @Tag(name = "Users")
 @RestController
@@ -47,7 +42,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
-    private final AvatarStorageService avatarStorageService;
 
     /**
      * 分页搜索用户（数据范围过滤）。
@@ -179,19 +173,5 @@ public class UserController {
     public ApiResponse<Void> resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request);
         return ApiResponse.ok();
-    }
-
-    /**
-     * 上传头像。
-     *
-     * @param file 图片文件
-     * @return 可访问 URL
-     */
-    @Operation(summary = "上传头像，返回可访问 URL")
-    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyAuthority('system:user:add','system:user:edit')")
-    @RateLimiter(name = "api")
-    public ApiResponse<AvatarUploadResult> uploadAvatar(@RequestPart("file") MultipartFile file) {
-        return ApiResponse.ok(avatarStorageService.storeAvatar(file));
     }
 }

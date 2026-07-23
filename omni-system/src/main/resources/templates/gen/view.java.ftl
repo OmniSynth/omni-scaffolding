@@ -1,5 +1,8 @@
 package ${cfg.packageName}.dto;
 
+<#if hasDictColumns>
+import com.omni.scaffolding.common.dict.DictText;
+</#if>
 import lombok.Data;
 <#if needBigDecimal>
 import java.math.BigDecimal;
@@ -16,11 +19,12 @@ import java.time.Instant;
 @Data
 public class ${functionCamel}View {
 
-<#list cfg.columns as col>
-<#if !col.logicDelete>
+<#list viewColumns as col>
     /** ${col.columnComment}。 */
+<#if col.dictType?? && col.dictType?has_content>
+    @DictText("${col.dictType}")
+</#if>
     private ${col.javaType} ${col.javaField};
 
-</#if>
 </#list>
 }

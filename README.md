@@ -65,7 +65,7 @@ flowchart TB
   end
 
   subgraph Middleware
-    MYSQL[(MySQL 8)]
+    MYSQL[(MySQL 主从)]
     REDIS[(Redis 7)]
     KAFKA[[Kafka 可选]]
     ES[[Elasticsearch 可选]]
@@ -98,16 +98,26 @@ flowchart TB
 
 ### 双轨持久化约定
 
-1. **写操作优先 JPA**（实体生命周期、乐观锁 `@Version`、审计字段）  
-2. **复杂读走 MyBatis**（多表 join、动态条件、聚合统计）  
-3. 共用同一 `DataSource` / Druid 与 Spring 事务  
-4. Schema 以 Flyway 为准；生产 `ddl-auto=validate`  
-5. 连接池监控：`/druid/*`；勿为虚拟线程无脑放大池  
+1. **写操作优先 JPA**（实体生命周期、乐观锁 `@Version`、审计字段）→ **主库 `master`**  
+2. **复杂读走 MyBatis**（多表 join、动态条件、聚合统计，`*QueryMapper`）→ **从库 `slave`**  
+3. 主从通过 `dynamic-datasource` + Druid；JPA 读默认仍走主库，避免复制延迟  
+4. **单库可用**：不配 `DB_SLAVE_*` 时从库与主库同址；测试 profile 仅注册 master，读路由回落主库  
+5. Schema 以 Flyway 为准（始终打主库）；生产 `ddl-auto=validate`  
+6. 连接池监控：`/druid/*`；主+从各一池，勿为虚拟线程无脑放大  
 
 示例：
 
 - JPA 写：`POST /api/demo/products`、`POST /api/system/users`  
 - MyBatis 读：`GET /api/demo/products`、`GET /api/demo/products/stats/by-category`、`GET /api/system/users`  
+
+### 主从读写分离
+
+| 节点 | 用途 | 环境变量 |
+|------|------|----------|
+| `master` | 写、Flyway、Quartz | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` |
+| `slave` | 复杂读、只读事务 | `DB_SLAVE_HOST` 等（缺省回落到对应 `DB_*`） |
+
+真实主从时只需为从库设置 `DB_SLAVE_HOST`（及可选端口/库名/账号）；本地或 Compose 单实例 MySQL 无需改动。
 
 ### 安全与权限
 
@@ -125,12 +135,29 @@ flowchart TB
 
 | 域 | 能力 |
 |----|------|
-| 系统管理 | 用户、角色、部门、岗位、菜单、字典、系统参数、通知公告 |
+| 系统管理 | 用户、角色、部门、岗位、菜单、字典、系统参数、通知公告、**文件管理** |
 | 审计 | 登录日志、操作日志 |
 | 调度 | `sys_job` 管理 + Quartz JDBC 集群；Bean 调用、Cron、执行日志 |
 | 安全 | IP 白名单、今日访问统计、缓存刷新 |
 | 运维 | Redis / MySQL / 服务器信息 / Druid 监控页 |
 | 演示 | 商品 CRUD、分布式锁、可选 Kafka / ES |
+
+### 统一文件存储
+
+支持 **Local / MinIO / 可插拔 OSS**（首发阿里云；七牛等实现 `OssProviderPlugin` 即可扩展）。
+
+| 配置 | 说明 |
+|------|------|
+| `omni.file.storage-type` | `local`（默认）/ `minio` / `oss` |
+| `omni.file.oss.provider` | OSS 插件 id，如 `aliyun` |
+| `omni.file.local.base-dir` | 本地根目录（`OMNI_UPLOAD_DIR`） |
+| `OMNI_MINIO_*` / `OMNI_OSS_ALIYUN_*` | MinIO / 阿里云凭证 |
+
+- 元数据表：`sys_file`；业务字段统一存 **文件 ID**（如 `sys_user.avatar_file_id`）
+- 上传：`POST /api/system/files?bizType=avatar`
+- 内容：`GET /api/system/files/{id}/content`（JWT **或** `expire`+`sign` 短时签名）
+- 预览：`GET /api/system/files/{id}/preview-url`；管理页 `/system/file` 支持图片预览
+- **扩展 OSS**：实现 `OssProviderPlugin`（`providerId`）注册为 Spring Bean，配置 `omni.file.oss.provider` 与 `omni.file.oss.providers.<id>.*`
 
 ---
 
@@ -155,8 +182,9 @@ flowchart TB
 
 - 库名默认：`omni`；开发账号：`omni` / `omni`  
 - 字符集：`utf8mb4`；时区：`+08:00`  
-- Schema **只走 Flyway**（`omni-admin/src/main/resources/db/migration`）  
+- Schema **只走 Flyway**（`omni-admin/src/main/resources/db/migration`），始终连接主库  
 - 生产：`useSSL=true`，账号密码用环境变量注入  
+- 读写分离：见上文「主从读写分离」；Compose 默认单节点即可  
 
 ### Redis
 
@@ -327,6 +355,9 @@ VITE_OMNI_SIGN_SECRET=<与后端 omni.security.sign.secret 一致>
 ### Docker 一键部署（后端 + 中间件）
 
 ```bash
+# 首次启动先复制并修改全部密码/密钥，.env 不可提交
+# PowerShell: Copy-Item .env.example .env
+# Linux/macOS: cp .env.example .env
 mvn -s .mvn/settings.xml -DskipTests package
 docker compose up -d --build
 ```
@@ -339,18 +370,25 @@ docker compose up -d --build
 | 变量 | 说明 |
 |------|------|
 | `SPRING_PROFILES_ACTIVE` | `prod` |
-| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | 数据源 |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | 主库（写） |
+| `DB_SLAVE_HOST` / `DB_SLAVE_PORT` / `DB_SLAVE_NAME` / `DB_SLAVE_USER` / `DB_SLAVE_PASSWORD` | 从库（读，可选；缺省=主库） |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | Redis |
 | `OMNI_JWT_SECRET` | JWT 密钥（**生产必须更换**） |
+| `OMNI_SIGN_SECRET` | 登录请求签名密钥（**生产必须更换**） |
+| `OMNI_ADMIN_INITIAL_PASSWORD` | 首次生产启动替换 `admin/admin123`，至少 12 位 |
+| `DRUID_ENABLED` | 生产默认 `false`；仅在内网监控场景显式开启 |
+| `DRUID_ALLOW` | Druid 来源 IP/CIDR 白名单，默认仅 `127.0.0.1` |
+| `DRUID_USERNAME` / `DRUID_PASSWORD` | Druid 独立账号，开启前必须设置强密码 |
 
 ### 生产部署建议
 
 1. **密钥**：`OMNI_JWT_SECRET`、`OMNI_SIGN_SECRET`、DB/Redis 密码、Druid 控制台账号均走环境变量，禁止入库。  
 2. **水平扩展**：应用无状态（JWT）；多实例共享同一 MySQL + Redis；Quartz 必须 JDBC 集群。  
-3. **连接池**：单实例 Druid `max-active` ≈ `floor(DB_max_connections * 0.7 / 实例数)`。  
+3. **连接池**：主+从各一 Druid 池；单实例 `max-active` 总和 ≈ `floor(DB_max_connections * 0.7 / 实例数)`。  
 4. **优雅停机**：`server.shutdown=graceful`；滚动发布配合 readiness。  
-5. **前端**：`npm run build` 产物由 Nginx/CDN 托管，反代 `/api`、`/uploads`、`/druid` 到后端。  
+5. **前端**：`npm run build` 产物由 Nginx/CDN 托管，反代 `/api`、`/druid` 到后端。  
 6. **探针**：使用 liveness + readiness，勿仅探测根路径。  
+7. **管理端点**：生产关闭 Swagger；Prometheus 不匿名开放；Druid 默认关闭，开启时同时配置内网路由、`DRUID_ALLOW` 与独立强密码。
 
 示例 Nginx：
 
@@ -363,9 +401,6 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  }
-  location /uploads/ {
-    proxy_pass http://omni-app:8080/uploads/;
   }
   location / {
     try_files $uri $uri/ /index.html;

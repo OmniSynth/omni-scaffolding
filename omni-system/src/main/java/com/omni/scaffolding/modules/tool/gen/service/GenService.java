@@ -171,6 +171,16 @@ public class GenService {
         if (config.getColumns() == null || config.getColumns().isEmpty()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "列配置不能为空");
         }
+        config.getColumns().forEach(column ->
+                column.setDictType(StringUtils.hasText(column.getDictType()) ? column.getDictType().trim() : null));
+        config.getColumns().stream()
+                .map(GenColumnConfig::getDictType)
+                .filter(StringUtils::hasText)
+                .filter(type -> !type.matches("[A-Za-z0-9_.:-]+"))
+                .findFirst()
+                .ifPresent(type -> {
+                    throw new BusinessException(ErrorCode.BAD_REQUEST, "字典类型编码包含非法字符: " + type);
+                });
         boolean hasDeleted = config.getColumns().stream().anyMatch(GenColumnConfig::isLogicDelete);
         boolean extendsAudit = config.getColumns().stream().anyMatch(GenColumnConfig::isAudit);
         config.setHasDeleted(hasDeleted);
@@ -233,6 +243,11 @@ public class GenService {
         model.put("listColumns", config.getColumns().stream().filter(GenColumnConfig::isList).toList());
         model.put("formColumns", config.getColumns().stream().filter(GenColumnConfig::isForm).toList());
         model.put("viewColumns", config.getColumns().stream().filter(c -> !c.isLogicDelete()).toList());
+        List<GenColumnConfig> dictColumns = config.getColumns().stream()
+                .filter(c -> StringUtils.hasText(c.getDictType()))
+                .toList();
+        model.put("dictColumns", dictColumns);
+        model.put("hasDictColumns", !dictColumns.isEmpty());
         // 继承审计基类时，实体不再重复声明 created_at/updated_at/version
         List<GenColumnConfig> entityCols = new ArrayList<>();
         for (GenColumnConfig c : config.getColumns()) {

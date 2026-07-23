@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   downloadGenCode,
+  fetchGenDictTypes,
   fetchGenTableConfig,
   fetchGenTables,
   previewGenCode,
@@ -10,7 +11,7 @@ import {
   type GenQueryType,
   type GenTableConfig,
 } from '@/api/tool/gen'
-import type { MysqlTableView } from '@/types/api'
+import type { DictTypeView, MysqlTableView } from '@/types/api'
 
 const step = ref(0)
 const tablesLoading = ref(false)
@@ -20,6 +21,8 @@ const tablePage = ref(1)
 const tableSize = ref(10)
 const tableTotal = ref(0)
 const selectedTable = ref('')
+const dictTypesLoading = ref(false)
+const dictTypes = ref<DictTypeView[]>([])
 
 const configLoading = ref(false)
 const config = reactive<GenTableConfig>({
@@ -69,6 +72,15 @@ async function loadTables() {
     tableTotal.value = data.total
   } finally {
     tablesLoading.value = false
+  }
+}
+
+async function loadDictTypes() {
+  dictTypesLoading.value = true
+  try {
+    dictTypes.value = await fetchGenDictTypes()
+  } finally {
+    dictTypesLoading.value = false
   }
 }
 
@@ -134,7 +146,10 @@ async function onDownload() {
   }
 }
 
-onMounted(loadTables)
+onMounted(() => {
+  loadTables()
+  loadDictTypes()
+})
 </script>
 
 <template>
@@ -283,6 +298,26 @@ onMounted(loadTables)
           <template #default="{ row }">
             <el-select v-model="row.queryType" size="small" style="width: 110px">
               <el-option v-for="opt in queryTypes" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="字典类型" min-width="150">
+          <template #default="{ row }">
+            <el-select
+              v-model="row.dictType"
+              clearable
+              filterable
+              size="small"
+              placeholder="选择字典"
+              :loading="dictTypesLoading"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="dict in dictTypes"
+                :key="dict.code"
+                :label="`${dict.name}（${dict.code}）`"
+                :value="dict.code"
+              />
             </el-select>
           </template>
         </el-table-column>

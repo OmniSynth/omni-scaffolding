@@ -102,7 +102,7 @@
         <result property="mobile" column="mobile"/>
         <result property="email" column="email"/>
         <result property="gender" column="gender"/>
-        <result property="avatar" column="avatar"/>
+        <result property="avatarFileId" column="avatar_file_id"/>
         <result property="deptId" column="dept_id"/>
         <result property="deptName" column="dept_name"/>
         <result property="enabled" column="enabled"/>
@@ -121,7 +121,7 @@
         u.mobile,
         u.email,
         u.gender,
-        u.avatar,
+        u.avatar_file_id,
         u.dept_id,
         d.name AS dept_name,
         u.enabled

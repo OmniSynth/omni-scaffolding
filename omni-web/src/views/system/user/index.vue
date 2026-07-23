@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules, type UploadRequestOptions } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
   changeUserEnabled,
   createUser,
@@ -10,13 +10,14 @@ import {
   removeUser,
   resetUserPassword,
   updateUser,
-  uploadAvatar,
 } from '@/api/system/user'
 import { listRoles } from '@/api/system/role'
 import { listPosts } from '@/api/system/post'
 import { fetchDeptTree } from '@/api/system/dept'
 import { useUserStore } from '@/stores/user'
 import type { DeptView, PostView, RoleView, UserDetailView } from '@/types/api'
+import FileUpload from '@/components/FileUpload.vue'
+import FileImage from '@/components/FileImage.vue'
 
 const userStore = useUserStore()
 const canEditUser = computed(() => userStore.hasPermission('system:user:edit'))
@@ -35,7 +36,6 @@ const pwdVisible = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
 const pwdFormRef = ref<FormInstance>()
-const uploading = ref(false)
 const statusLoadingId = ref<number | null>(null)
 const exporting = ref(false)
 
@@ -47,7 +47,8 @@ const form = reactive({
   mobile: '',
   email: '',
   gender: 'UNKNOWN',
-  avatar: '',
+  avatarFileId: null as number | null,
+  avatarUrl: '' as string,
   deptId: undefined as number | undefined,
   postIds: [] as number[],
   roleIds: [] as number[],
@@ -144,7 +145,8 @@ function openCreate() {
     mobile: '',
     email: '',
     gender: 'UNKNOWN',
-    avatar: '',
+    avatarFileId: null,
+    avatarUrl: '',
     deptId: undefined,
     postIds: [],
     roleIds: [],
@@ -165,7 +167,8 @@ async function openEdit(row: UserDetailView) {
     mobile: detail.mobile || '',
     email: detail.email || '',
     gender: detail.gender || 'UNKNOWN',
-    avatar: detail.avatar || '',
+    avatarFileId: detail.avatarFileId ?? null,
+    avatarUrl: detail.avatarUrl || '',
     deptId: detail.deptId,
     postIds: [...(detail.postIds || [])],
     roleIds: [...(detail.roleIds || [])],
@@ -181,7 +184,7 @@ function profilePayload() {
     mobile: form.mobile || undefined,
     email: form.email || undefined,
     gender: form.gender,
-    avatar: form.avatar || undefined,
+    avatarFileId: form.avatarFileId || undefined,
     deptId: form.deptId!,
     postIds: form.postIds,
     roleIds: form.roleIds,
@@ -228,20 +231,6 @@ async function submitPwd() {
   pwdVisible.value = false
 }
 
-async function onAvatarUpload(options: UploadRequestOptions) {
-  uploading.value = true
-  try {
-    const result = await uploadAvatar(options.file as File)
-    form.avatar = result.url
-    ElMessage.success('头像已上传')
-    options.onSuccess?.(result)
-  } catch {
-    // axios 拦截器已提示错误
-  } finally {
-    uploading.value = false
-  }
-}
-
 async function onEnabledChange(row: UserDetailView, enabled: boolean | string | number) {
   const next = Boolean(enabled)
   if (row.id === 1 && !next) {
@@ -283,7 +272,12 @@ onMounted(async () => {
     <el-table v-loading="loading" :data="rows" stripe>
       <el-table-column label="头像" width="72">
         <template #default="{ row }">
-          <el-avatar :size="36" :src="row.avatar || undefined">{{ (row.realName || row.nickname || '?').slice(0, 1) }}</el-avatar>
+          <FileImage
+            :file-id="row.avatarFileId"
+            :src="row.avatarUrl"
+            :size="36"
+            :letter="row.realName || row.nickname || '?'"
+          />
         </template>
       </el-table-column>
       <el-table-column prop="username" label="用户名" width="120" />
@@ -347,12 +341,12 @@ onMounted(async () => {
   <el-dialog v-model="dialogVisible" :title="editingId == null ? '新增用户' : '编辑用户'" width="640px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
       <el-form-item label="头像">
-        <div class="avatar-row">
-          <el-avatar :size="64" :src="form.avatar || undefined">{{ (form.realName || form.nickname || '?').slice(0, 1) }}</el-avatar>
-          <el-upload :show-file-list="false" accept="image/png,image/jpeg,image/gif,image/webp" :http-request="onAvatarUpload">
-            <el-button :loading="uploading">上传头像</el-button>
-          </el-upload>
-        </div>
+        <FileUpload
+          v-model="form.avatarFileId"
+          v-model:preview-url="form.avatarUrl"
+          biz-type="avatar"
+          tip="jpg/png/gif/webp，最大 2MB"
+        />
       </el-form-item>
       <el-form-item v-if="editingId == null" label="用户名" prop="username">
         <el-input v-model="form.username" />
@@ -440,10 +434,5 @@ onMounted(async () => {
 }
 .tag {
   margin-right: 4px;
-}
-.avatar-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
 }
 </style>

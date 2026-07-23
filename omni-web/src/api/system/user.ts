@@ -1,5 +1,5 @@
 import type { PageQuery, PageResult, UserDetailView } from '@/types/api'
-import { deleteData, downloadBlob, getData, postData, putData, uploadData } from '@/utils/request'
+import { deleteData, downloadBlob, getData, postData, putData } from '@/utils/request'
 
 export interface UserWriteBody {
   username?: string
@@ -9,7 +9,7 @@ export interface UserWriteBody {
   mobile?: string
   email?: string
   gender?: string
-  avatar?: string
+  avatarFileId?: number | null
   deptId: number
   postIds?: number[]
   roleIds: number[]
@@ -46,10 +46,4 @@ export function removeUser(id: number): Promise<void> {
 
 export function resetUserPassword(id: number, password: string): Promise<void> {
   return putData(`/system/users/${id}/password`, { password })
-}
-
-export function uploadAvatar(file: File): Promise<{ url: string }> {
-  const form = new FormData()
-  form.append('file', file)
-  return uploadData<{ url: string }>('/system/users/avatar', form)
 }

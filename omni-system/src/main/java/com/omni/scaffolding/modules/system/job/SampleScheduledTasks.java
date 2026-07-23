@@ -1,5 +1,6 @@
 package com.omni.scaffolding.modules.system.job;
 
+import com.omni.scaffolding.quartz.support.QuartzInvokable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ public class SampleScheduledTasks {
     /**
      * 无参心跳，调用目标 {@code sampleScheduledTasks.ping}。
      */
+    @QuartzInvokable
     public void ping() {
         log.info("[SampleScheduledTasks] ping ok");
     }
@@ -27,6 +29,7 @@ public class SampleScheduledTasks {
      *
      * @param payload 任务参数字符串
      */
+    @QuartzInvokable
     public void echo(String payload) {
         log.info("[SampleScheduledTasks] echo: {}", payload);
     }

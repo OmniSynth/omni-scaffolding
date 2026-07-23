@@ -13,8 +13,8 @@ import com.omni.scaffolding.modules.system.entity.SysJob;
 import com.omni.scaffolding.modules.system.mapper.SysJobQueryMapper;
 import com.omni.scaffolding.modules.system.repository.SysJobLogRepository;
 import com.omni.scaffolding.modules.system.repository.SysJobRepository;
-import com.omni.scaffolding.quartz.support.JobInvokeUtils;
 import com.omni.scaffolding.quartz.support.ManagedJobDefinition;
+import com.omni.scaffolding.quartz.support.QuartzJobRegistry;
 import com.omni.scaffolding.quartz.support.QuartzJobScheduler;
 import lombok.RequiredArgsConstructor;
 import org.quartz.SchedulerException;
@@ -36,6 +36,7 @@ public class JobService {
     private final SysJobLogRepository jobLogRepository;
     private final SysJobQueryMapper jobQueryMapper;
     private final ObjectProvider<QuartzJobScheduler> quartzJobScheduler;
+    private final QuartzJobRegistry quartzJobRegistry;
 
     /**
      * 分页查询定时任务。
@@ -244,7 +245,7 @@ public class JobService {
      */
     private void validateRequest(JobSaveRequest request) {
         try {
-            JobInvokeUtils.validateTarget(request.getInvokeTarget());
+            quartzJobRegistry.validateTarget(request.getInvokeTarget());
         } catch (IllegalArgumentException ex) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, ex.getMessage());
         }

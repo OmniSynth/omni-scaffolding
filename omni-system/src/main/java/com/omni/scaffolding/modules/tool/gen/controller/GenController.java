@@ -5,6 +5,8 @@ import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.api.PageResult;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.modules.ops.dto.MysqlTableView;
+import com.omni.scaffolding.modules.system.dto.DictTypeView;
+import com.omni.scaffolding.modules.system.service.DictService;
 import com.omni.scaffolding.modules.tool.gen.dto.GenFileView;
 import com.omni.scaffolding.modules.tool.gen.dto.GenTableConfig;
 import com.omni.scaffolding.modules.tool.gen.service.GenService;
@@ -41,6 +43,7 @@ import java.util.List;
 public class GenController {
 
     private final GenService genService;
+    private final DictService dictService;
 
     /**
      * 可生成的业务表列表。
@@ -58,6 +61,22 @@ public class GenController {
                                                           @RequestParam(required = false) Long page,
                                                           @RequestParam(required = false) Long size) {
         return ApiResponse.ok(genService.listTables(keyword, page, size));
+    }
+
+    /**
+     * 代码生成字段可选的启用字典类型。
+     *
+     * @return 启用字典类型列表
+     */
+    @Operation(summary = "可选字典类型")
+    @GetMapping("/dict-types")
+    @PreAuthorize("hasAuthority('tool:gen:query')")
+    @RateLimiter(name = "api")
+    public ApiResponse<List<DictTypeView>> dictTypes() {
+        List<DictTypeView> types = dictService.listTypes(null, 1L, 200L).getRecords().stream()
+                .filter(type -> Boolean.TRUE.equals(type.getStatus()))
+                .toList();
+        return ApiResponse.ok(types);
     }
 
     /**

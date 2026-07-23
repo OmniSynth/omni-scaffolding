@@ -20,7 +20,8 @@ interface StoredProfile {
   mobile?: string
   email?: string
   gender?: string
-  avatar?: string
+  avatarFileId?: number
+  avatarUrl?: string
   deptId?: number
   deptName?: string
   posts?: string[]
@@ -62,7 +63,8 @@ function toStoredProfile(me: {
   mobile?: string
   email?: string
   gender?: string
-  avatar?: string
+  avatarFileId?: number
+  avatarUrl?: string
   deptId?: number
   deptName?: string
   posts?: string[]
@@ -79,7 +81,8 @@ function toStoredProfile(me: {
     mobile: me.mobile,
     email: me.email,
     gender: me.gender,
-    avatar: me.avatar,
+    avatarFileId: me.avatarFileId,
+    avatarUrl: me.avatarUrl,
     deptId: me.deptId,
     deptName: me.deptName,
     posts: me.posts || [],
@@ -99,7 +102,7 @@ export const useUserStore = defineStore('user', () => {
   const isLoggedIn = computed(() => !!token.value)
   const username = computed(() => profile.value?.username || '')
   const nickname = computed(() => profile.value?.nickname || profile.value?.username || '')
-  const avatar = computed(() => profile.value?.avatar || '')
+  const avatar = computed(() => profile.value?.avatarUrl || '')
   const displayName = computed(() => profile.value?.realName || profile.value?.nickname || profile.value?.username || '')
   const roles = computed(() => profile.value?.roles || [])
   const permissions = computed(() => profile.value?.permissions || [])

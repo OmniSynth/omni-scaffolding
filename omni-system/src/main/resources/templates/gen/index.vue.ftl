@@ -156,7 +156,15 @@ onMounted(load)
 
     <el-table v-loading="loading" :data="rows" stripe>
 <#list listColumns as col>
+<#if col.dictType?? && col.dictType?has_content>
+      <el-table-column label="${col.columnComment}" min-width="120" show-overflow-tooltip>
+        <template v-slot:default="{ row }">
+          {{ row.${col.javaField}Text ?? row.${col.javaField} }}
+        </template>
+      </el-table-column>
+<#else>
       <el-table-column prop="${col.javaField}" label="${col.columnComment}" min-width="120" show-overflow-tooltip />
+</#if>
 </#list>
       <el-table-column label="操作" width="140" fixed="right">
         <template v-slot:default="{ row }">

@@ -1,15 +1,24 @@
 # =============================================================================
 # 开发环境配置（profile=dev）
-# 敏感信息可用环境变量覆盖：DB_* / REDIS_*
+# 敏感信息可用环境变量覆盖：DB_* / DB_SLAVE_* / REDIS_*
 # =============================================================================
 
 spring:
   datasource:
-    # MySQL JDBC；serverTimezone 需与业务时区一致
-    url: jdbc:mysql://${DB_HOST:192.168.3.10}:${DB_PORT:40785}/${DB_NAME:omni-scaffolding}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:SgQHvsy9M7LWKBCz}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    dynamic:
+      datasource:
+        # 写库（主）
+        master:
+          url: jdbc:mysql://${DB_HOST:192.168.3.10}:${DB_PORT:40785}/${DB_NAME:omni-scaffolding}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          username: ${DB_USER:root}
+          password: ${DB_PASSWORD:SgQHvsy9M7LWKBCz}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        # 读库（从）；未配 DB_SLAVE_* 时与主库相同，单库可直接启动
+        slave:
+          url: jdbc:mysql://${DB_SLAVE_HOST:${DB_HOST:192.168.3.10}}:${DB_SLAVE_PORT:${DB_PORT:40785}}/${DB_SLAVE_NAME:${DB_NAME:omni-scaffolding}}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          username: ${DB_SLAVE_USER:${DB_USER:root}}
+          password: ${DB_SLAVE_PASSWORD:${DB_PASSWORD:SgQHvsy9M7LWKBCz}}
+          driver-class-name: com.mysql.cj.jdbc.Driver
 
   data:
     redis:
@@ -36,3 +45,4 @@ logging:
     com.omni.scaffolding: DEBUG
     org.hibernate.SQL: DEBUG
     com.baomidou.mybatisplus: DEBUG
+    com.baomidou.dynamic: DEBUG

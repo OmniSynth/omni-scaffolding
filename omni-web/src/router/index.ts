@@ -28,6 +28,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '个人中心' },
       },
       {
+        path: 'system/file',
+        name: 'SystemFile',
+        component: () => import('@/views/system/file/index.vue'),
+        meta: { title: '文件管理', permission: 'system:file:list' },
+      },
+      {
         path: 'system/user',
         name: 'SystemUser',
         component: () => import('@/views/system/user/index.vue'),

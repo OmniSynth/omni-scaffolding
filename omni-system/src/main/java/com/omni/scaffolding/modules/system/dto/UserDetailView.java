@@ -54,9 +54,14 @@ public class UserDetailView {
     private String gender;
 
     /**
-     * 头像路径。
+     * 头像文件 ID。
      */
-    private String avatar;
+    private Long avatarFileId;
+
+    /**
+     * 短时头像预览 URL（服务端签发，可直接用于 img src）。
+     */
+    private String avatarUrl;
 
     /**
      * 所属部门 ID。
