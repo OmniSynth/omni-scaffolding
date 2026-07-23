@@ -10,11 +10,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 生产部署配置清单：一次性给出全部检查项的通过/失败，避免运维改一项再启动撞下一项。
+ *
+ * <p>清单只打印一次；异常消息用短句，避免与 Spring 堆栈重复刷屏。
  */
 public final class ProdDeployConfigChecker {
 
     private static final List<String> FORBIDDEN = List.of("admin123", "123456");
-    private static final AtomicBoolean ALREADY_RAN = new AtomicBoolean(false);
+    private static final AtomicBoolean REPORT_PRINTED = new AtomicBoolean(false);
 
     private ProdDeployConfigChecker() {
     }
@@ -63,20 +65,18 @@ public final class ProdDeployConfigChecker {
     }
 
     /**
-     * 执行全部检查；有失败则打印完整清单并抛错。同一 JVM 只跑一次。
+     * 执行全部检查；失败时清单只打印一次，异常为短消息（避免堆栈再贴一整份清单）。
      */
     public static void requireValidOrThrow(Environment environment) {
-        if (!ALREADY_RAN.compareAndSet(false, true)) {
-            return;
-        }
         List<CheckItem> items = evaluate(environment);
+        long failCount = items.stream().filter(i -> !i.ok()).count();
         String report = formatReport(items);
-        boolean failed = items.stream().anyMatch(i -> !i.ok());
-        if (failed) {
-            System.err.println(report);
-            throw new IllegalStateException(report);
+        if (failCount > 0) {
+            printReportOnce(report, true);
+            throw new IllegalStateException(
+                    "prod 部署配置检查失败，共 " + failCount + " 项不合格，详见上方清单");
         }
-        System.out.println(report);
+        printReportOnce(report, false);
     }
 
     /**
@@ -177,6 +177,17 @@ public final class ProdDeployConfigChecker {
         return sb.toString();
     }
 
+    private static void printReportOnce(String report, boolean error) {
+        if (!REPORT_PRINTED.compareAndSet(false, true)) {
+            return;
+        }
+        if (error) {
+            System.err.println(report);
+        } else {
+            System.out.println(report);
+        }
+    }
+
     private static boolean containsProd(String active) {
         if (!StringUtils.hasText(active)) {
             return false;
@@ -199,7 +210,6 @@ public final class ProdDeployConfigChecker {
                 return v;
             }
         }
-        // 环境变量兜底（部分阶段属性尚未绑定）
         for (String key : keys) {
             if (key.indexOf('.') >= 0) {
                 continue;

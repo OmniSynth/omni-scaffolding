@@ -1,2 +1,6 @@
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
 com.omni.scaffolding.config.elasticsearch.ElasticsearchAutoConfigurationImportFilter
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.omni.scaffolding.config.ProdSecurityEnvironmentPostProcessor
+org.springframework.boot.SpringApplicationRunListener=\
+com.omni.scaffolding.config.ProdSecurityRunListener

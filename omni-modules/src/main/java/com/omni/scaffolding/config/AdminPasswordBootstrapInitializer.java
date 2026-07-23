@@ -24,7 +24,7 @@ import java.util.List;
  * <p>仅当库中密码仍为演示口令时替换（{@code admin123} / 历史错误种子 {@code 123456}），
  * 避免覆盖管理员自行改密。须在 {@link AdminPasswordInitializer} 之后执行。
  *
- * <p>密码不合规时不会只抛单行错误，而是复跑 {@link ProdDeployConfigChecker} 一次列出全部项。
+ * <p>密码不合规时走 {@link ProdDeployConfigChecker}（清单只打印一次）。
  */
 @Slf4j
 @Component
@@ -53,11 +53,10 @@ public class AdminPasswordBootstrapInitializer implements ApplicationRunner {
         }
         initialPassword = initialPassword.trim();
         if (initialPassword.length() < 12 || DEMO_PASSWORDS.contains(initialPassword)) {
-            // 早期预检若被跳过或未绑定全量属性：这里一次性打出全部配置项
-            String report = ProdDeployConfigChecker.formatReport(ProdDeployConfigChecker.evaluate(environment));
-            System.err.println(report);
-            log.error(report);
-            throw new IllegalStateException(report);
+            // 清单只由 Checker 打印一次；异常用短消息，避免与 Spring 堆栈重复
+            ProdDeployConfigChecker.requireValidOrThrow(environment);
+            throw new IllegalStateException(
+                    "OMNI_ADMIN_INITIAL_PASSWORD 不合规（至少 12 位，且不能为 admin123/123456）");
         }
 
         String passwordToSet = initialPassword;

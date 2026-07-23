@@ -88,3 +88,5 @@ logging:
     # 生产默认收敛日志量；业务包保留 INFO
     root: WARN
     com.omni.scaffolding: INFO
+    org.flywaydb.core.internal.sqlscript.DefaultSqlScriptExecutor: ERROR
+    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR

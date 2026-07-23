@@ -407,6 +407,10 @@ logging:
   level:
     root: INFO
     com.omni.scaffolding: INFO
+    # Flyway 执行旧迁移里 TINYINT(1) 时 MySQL 8 刷屏告警（Error 1681），已发布脚本不可改
+    org.flywaydb.core.internal.sqlscript.DefaultSqlScriptExecutor: ERROR
+    # Actuator 指标后处理器与 Flyway 初始化顺序导致的框架噪音
+    org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR
   pattern:
     # [%X{traceId}] 输出 MDC 中的链路 ID（由 TraceIdFilter 写入）
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n"
