@@ -40,6 +40,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+      # 与开发对齐时可设 REDIS_DB=1（见 application-dev.yml）
+      database: ${REDIS_DB:0}
       # 与公共配置一致：命令超时，避免 VT 堆积
       timeout: 2s
 
@@ -64,8 +66,10 @@ omni:
       secret: ${OMNI_JWT_SECRET}
     sign:
       secret: ${OMNI_SIGN_SECRET}
-    # 生产站点 Origin（含协议），与浏览器地址栏一致；多个用逗号分隔
-    # 例：OMNI_CORS_ORIGINS=http://omni-scaffolding.irez.cn,https://omni-scaffolding.irez.cn
+    # 生产站点 CORS：填浏览器 Origin（含协议）或裸域名；多个逗号分隔
+    # 只配 http 也会自动放行同 host 的 https（反之亦然）
+    # 例：OMNI_CORS_ORIGINS=https://omni-scaffolding.irez.cn
+    # 例：OMNI_CORS_ORIGINS=omni-scaffolding.irez.cn
     cors:
       allowed-origin-patterns:
         - ${OMNI_CORS_ORIGINS}

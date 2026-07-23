@@ -57,6 +57,18 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_HOSTS:192.168.6.80}:${KAFKA_PORT:9092}
 
+# Nginx 站点联调时放行浏览器 Origin（可被 OMNI_CORS_ORIGINS 覆盖）
+omni:
+  security:
+    cors:
+      allowed-origin-patterns:
+        - http://localhost:*
+        - http://127.0.0.1:*
+        - http://192.168.*.*:*
+        - http://10.*.*.*:*
+        - http://172.*.*.*:*
+        - ${OMNI_CORS_ORIGINS:https://omni-scaffolding.irez.cn}
+
 logging:
   level:
     # 需要追 SQL 时临时改为 DEBUG，勿长期开全量 DEBUG

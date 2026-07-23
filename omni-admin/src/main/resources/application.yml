@@ -378,6 +378,11 @@ omni:
     # 演示任务 Cron
     demo-cron: ${OMNI_QUARTZ_DEMO_CRON:0 * * * * ?}
 
+  # 日志目录：{home}/{spring.application.name}/{spring.profiles.active}/{name}.log
+  # root 用户默认即 /root/.logs/omni-scaffolding/dev/omni-scaffolding.log
+  logging:
+    home: ${OMNI_LOG_HOME:${user.home}/.logs}
+
 # ---------- Resilience4j 方法级限流（与 Redis 入口限流互补）----------
 resilience4j:
   ratelimiter:
@@ -391,7 +396,7 @@ resilience4j:
       api:
         base-config: default
 
-# ---------- 日志 ----------
+# ---------- 日志级别 ----------
 logging:
   level:
     root: INFO

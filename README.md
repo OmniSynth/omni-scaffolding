@@ -15,6 +15,7 @@ Java 21 + Spring Boot 3.4 单体脚手架，面向高并发、高可用业务场
 |------|------|
 | [AGENTS.md](./AGENTS.md) | **AI / 贡献者强制规范**：模块边界、双轨持久化、`saveAndFlush`、CRUD 清单、权限与前端约定 |
 | [docs/ADOPT.md](./docs/ADOPT.md) | **换皮 / 裁剪清单**：改包名、去 demo、生产安全配置 |
+| [docs/DEPLOY.md](./docs/DEPLOY.md) | **生产部署**：Nginx 反代、Jenkins 脚本、CORS / 环境变量 |
 | [omni-web/README.md](./omni-web/README.md) | 管理端前端启动与目录说明 |
 | `.env.example` | Compose / 生产环境变量模板 |
 | `omni-admin/.../application*.yml` | 运行时配置（dev / prod / 公共） |
@@ -436,6 +437,7 @@ docker compose up -d --build
 | `OMNI_JWT_SECRET` | JWT 密钥（**生产必须更换**） |
 | `OMNI_SIGN_SECRET` | 登录请求签名密钥（**生产必须更换**） |
 | `OMNI_ADMIN_INITIAL_PASSWORD` | 首次生产启动替换 `admin/admin123`，至少 12 位 |
+| `OMNI_CORS_ORIGINS` | 生产站点 Origin（含协议）；Nginx 同源反代也必配，多个逗号分隔 |
 | `OMNI_FILE_STORAGE_TYPE` | `local` / `minio` / `oss` |
 | `DRUID_ENABLED` | 生产默认 `false`；仅在内网监控场景显式开启 |
 | `DRUID_ALLOW` | Druid 来源 IP/CIDR 白名单，默认仅 `127.0.0.1` |
@@ -450,26 +452,11 @@ docker compose up -d --build
 3. **连接池**：主+从各一 Druid 池；单实例 `max-active` 总和 ≈ `floor(DB_max_connections * 0.7 / 实例数)`。  
 4. **优雅停机**：`server.shutdown=graceful`；滚动发布配合 readiness。  
 5. **前端**：`npm run build` 产物由 Nginx/CDN 托管，反代 `/api`、`/druid` 到后端。  
-6. **探针**：使用 liveness + readiness，勿仅探测根路径。  
-7. **管理端点**：生产关闭 Swagger；Prometheus 不匿名开放；Druid 默认关闭，开启时同时配置内网路由、`DRUID_ALLOW` 与独立强密码。
+6. **CORS**：配置 `OMNI_CORS_ORIGINS` 与浏览器访问 Origin 一致（含协议）。  
+7. **探针**：使用 liveness + readiness，勿仅探测根路径。  
+8. **管理端点**：生产关闭 Swagger；Prometheus 不匿名开放；Druid 默认关闭，开启时同时配置内网路由、`DRUID_ALLOW` 与独立强密码。
 
-示例 Nginx：
-
-```nginx
-server {
-  listen 80;
-  root /usr/share/nginx/html;   # omni-web dist
-  location /api/ {
-    proxy_pass http://omni-app:8080/api/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  }
-  location / {
-    try_files $uri $uri/ /index.html;
-  }
-}
-```
+完整 Nginx 配置与 Jenkins 启动脚本见 **[docs/DEPLOY.md](./docs/DEPLOY.md)**。
 
 ### 多实例（含 Quartz）验证
 
