@@ -1,0 +1,331 @@
+# =============================================================================
+# Omni Scaffolding 公共配置（所有环境共享）
+# 环境专属项见 application-dev.yml / application-prod.yml
+# =============================================================================
+
+spring:
+  application:
+    name: omni-scaffolding
+  profiles:
+    # 默认 dev；生产通过环境变量 SPRING_PROFILES_ACTIVE=prod 覆盖
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ---------- 虚拟线程（Java 21）----------
+  threads:
+    virtual:
+      # true：Tomcat 请求按 virtual-thread-per-task 调度，适合 I/O 密集 API
+      enabled: true
+
+  lifecycle:
+    # 优雅停机时，单阶段最长等待时间
+    timeout-per-shutdown-phase: 30s
+
+  jackson:
+    serialization:
+      # 日期序列化为 ISO-8601 字符串，而非时间戳
+      write-dates-as-timestamps: false
+    time-zone: Asia/Shanghai
+
+  # ---------- JPA ----------
+  jpa:
+    # 关闭 OSIV，避免懒加载把事务拖到 Controller 之外
+    open-in-view: false
+    hibernate:
+      # 生产/开发均以 Flyway 为准；启动时校验实体与表结构是否一致
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Shanghai
+        format_sql: false
+
+  # ---------- Redis（连接细节由 profile 覆盖 host/port/password）----------
+  data:
+    redis:
+      # 命令超时：虚拟线程下务必设上限，避免无限等待
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 2s
+
+  # ---------- Flyway ----------
+  flyway:
+    enabled: true
+    # 多模块场景用 classpath:；脚本在 omni-admin/src/main/resources/db/migration
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # ---------- 缓存 ----------
+  cache:
+    type: redis
+    redis:
+      # @Cacheable 默认 TTL
+      time-to-live: 10m
+      # 不缓存 null，防止长期占位；空值短 TTL 需业务侧自行处理
+      cache-null-values: false
+
+  # ---------- 数据源连接池（Druid）----------
+  # 注意：虚拟线程再多也不能无脑放大连接池，按 DB max_connections / 实例数校准
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      # 获取连接超时（毫秒），超时快速失败形成背压
+      max-wait: 3000
+      # 空闲连接检测
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      max-evictable-idle-time-millis: 900000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      # 监控页 /druid/*（前端运维菜单 iframe 内嵌）
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        reset-enable: false
+        # 生产务必用环境变量覆盖
+        login-username: ${DRUID_USERNAME:admin}
+        login-password: ${DRUID_PASSWORD:admin123}
+        allow:
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/actuator/*,/uploads/*"
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 2000
+          # Flyway DDL 等语句 merge 易报解析噪音，关闭即可
+          merge-sql: false
+        # Wall 对 Flyway DDL / 部分方言解析不友好，默认关闭；需要时可单独开启并调白名单
+        wall:
+          enabled: false
+
+  # ---------- Elasticsearch Client（仅 omni.elasticsearch.enabled=true 时由自动配置加载）----------
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 3s
+    socket-timeout: 10s
+
+  # ---------- Kafka Client（仅 omni.kafka.enabled=true 时由自动配置加载）----------
+  kafka:
+    # 支持 KAFKA_HOSTS + KAFKA_PORT；也可用完整地址环境变量覆盖（见 application-dev）
+    bootstrap-servers: ${KAFKA_HOSTS:localhost}:${KAFKA_PORT:9092}
+    consumer:
+      group-id: ${KAFKA_GROUP_ID:omni-scaffolding}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    listener:
+      # 单条/批量消费确认模式；生产可按业务改为手动 ACK
+      ack-mode: batch
+
+  # ---------- Quartz（JDBC 集群；仅 omni.quartz.enabled=true 时生效）----------
+  quartz:
+    # 任务持久化到 MySQL QRTZ_*，多实例靠 DB 行锁互斥触发
+    job-store-type: jdbc
+    jdbc:
+      # 禁止 Boot 自动建/删表；表结构只走 Flyway V3
+      initialize-schema: never
+    overwrite-existing-jobs: true
+    properties:
+      org.quartz.scheduler.instanceName: omni-cluster
+      # 每节点自动生成唯一 instanceId
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.isClustered: true
+      # 节点心跳间隔（毫秒）；宕机后其他节点据此接管
+      org.quartz.jobStore.clusterCheckinInterval: 10000
+      # 勿手动指定 jobStore.class=JobStoreTX，否则绕过 Boot 的 LocalDataSourceJobStore（会报 DataSource name not set）
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      # Quartz 工作线程池（与虚拟线程无关）
+      org.quartz.threadPool.threadCount: 5
+
+# ---------- 内嵌服务器 ----------
+server:
+  port: ${SERVER_PORT:8080}
+  # 优雅停机：先停接收新请求，再等待进行中的请求结束
+  shutdown: graceful
+  tomcat:
+    connection-timeout: 5s
+    keep-alive-timeout: 20s
+
+# ---------- Actuator / 可观测 ----------
+management:
+  endpoints:
+    web:
+      exposure:
+        # 按需暴露；生产可收紧，仅保留 health + prometheus
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        # 启用 liveness / readiness，便于 K8s / Compose 探针
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+    elasticsearch:
+      # 与 omni.elasticsearch.enabled 对齐；关闭时禁止 Actuator 探测 ES（避免 Connection refused 刷日志）
+      enabled: ${omni.elasticsearch.enabled:false}
+
+# ---------- MyBatis-Plus ----------
+mybatis-plus:
+  # classpath*: 扫描各模块 jar 内的 mapper XML
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+  global-config:
+    db-config:
+      id-type: assign_id
+      # 逻辑删除字段约定（与表字段 deleted 对齐）
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# ---------- OpenAPI / Swagger ----------
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# ---------- 业务自定义配置 ----------
+omni:
+  # 本地上传（头像等）
+  upload:
+    base-dir: ${OMNI_UPLOAD_DIR:./data/uploads}
+    url-prefix: /uploads
+    avatar-max-bytes: 2097152
+  security:
+    jwt:
+      # 生产务必用环境变量 OMNI_JWT_SECRET 覆盖（至少 32 字节）
+      secret: ${OMNI_JWT_SECRET:omni-scaffolding-dev-secret-change-me-32bytes!!}
+      # Token 过期时间（毫秒），默认 24h
+      expiration-ms: ${OMNI_JWT_EXPIRATION_MS:86400000}
+    # @IpWhitelist 兜底 IP 列表（优先 sys_ip_whitelist 表；表空时才用本配置）
+    ip-whitelist: ${OMNI_SECURITY_IP_WHITELIST:127.0.0.1,0:0:0:0:0:0:0:1}
+    # Security 白名单：匿名可访问
+    permit-all:
+      - /api/auth/login
+      - /actuator/health/**
+      - /actuator/info
+      - /actuator/prometheus
+      - /v3/api-docs/**
+      - /swagger-ui/**
+      - /swagger-ui.html
+      # Druid 监控页自带登录；iframe 无法携带 Bearer
+      - /druid/**
+      # 头像等静态资源（img 标签无法带 Bearer）
+      - /uploads/**
+    # ---------- 登录加签（防脚本爆破：HMAC + 时间窗 + nonce + IP 限流）----------
+    sign:
+      enabled: ${OMNI_SECURITY_SIGN_ENABLED:true}
+      # 生产务必用 OMNI_SIGN_SECRET 覆盖；需与前端 VITE_OMNI_SIGN_SECRET 一致
+      secret: ${OMNI_SIGN_SECRET:aS0mF6xP5mX3zS9hX0kN8gR2nC6iI8rC}
+      # 允许的客户端时间偏差（秒）
+      skew-seconds: ${OMNI_SECURITY_SIGN_SKEW_SECONDS:300}
+      # 同一 IP 窗口内最大登录尝试次数
+      ip-limit: ${OMNI_SECURITY_SIGN_IP_LIMIT:20}
+      ip-window-seconds: ${OMNI_SECURITY_SIGN_IP_WINDOW_SECONDS:60}
+    # ---------- 动态权限（角色/菜单变更后无需重新登录）----------
+    dynamic-permission:
+      # false（默认）：权限来自 JWT Claims，性能更好
+      # true：每次请求按用户从库/缓存重载角色、权限码、数据范围；变更后即时生效
+      enabled: ${OMNI_SECURITY_DYNAMIC_PERMISSION_ENABLED:true}
+    # ---------- XSS 输入防护（参数 / Header / JSON·文本 Body）----------
+    xss:
+      # false 可关闭清洗（一般不建议）
+      enabled: ${OMNI_SECURITY_XSS_ENABLED:true}
+      # STRIP=剔除危险片段（推荐 API）；ESCAPE=HTML 实体转义（更严）
+      mode: STRIP
+      # 跳过清洗的路径（文档/探针；文件上传大 Body 可按需追加）
+      exclude-path-patterns:
+        - /actuator/**
+        - /druid/**
+        - /v3/api-docs/**
+        - /swagger-ui/**
+        - /swagger-ui.html
+        - /api/system/users/avatar
+        - /uploads/**
+  rate-limit:
+    # Redis 分布式入口限流（多实例共享计数）
+    enabled: true
+    # 每个窗口允许的最大请求数
+    limit-for-period: 100
+    # 窗口长度
+    limit-refresh-period: 1s
+    # 获取许可的等待时间；0 表示拿不到立刻拒绝
+    timeout-duration: 0
+
+  # ---------- Kafka（可选，默认关闭）----------
+  kafka:
+    # false：排除 KafkaAutoConfiguration，不连 Broker，无 Kafka 也能启动
+    # true：启用生产者 / @KafkaListener / 演示 API；需同时配置 spring.kafka.bootstrap-servers
+    enabled: ${OMNI_KAFKA_ENABLED:false}
+    # 演示 Topic（启用时会尝试自动创建）
+    demo-topic: ${OMNI_KAFKA_DEMO_TOPIC:omni.demo.events}
+
+  # ---------- Elasticsearch（可选，默认关闭）----------
+  elasticsearch:
+    # false：排除 ES 自动配置与 Health，不连集群，无 ES 也能启动
+    # true：启用商品索引 / 搜索演示 API；需同时配置 spring.elasticsearch.uris
+    enabled: ${OMNI_ELASTICSEARCH_ENABLED:false}
+    # 演示商品索引名（需与 DemoProductDocument @Document 一致）
+    product-index: ${OMNI_ELASTICSEARCH_PRODUCT_INDEX:omni_demo_product}
+
+  # ---------- Quartz（默认开启；多实例共享 DB 防重复执行）----------
+  quartz:
+    # false：排除 QuartzAutoConfiguration，不启 Scheduler
+    enabled: ${OMNI_QUARTZ_ENABLED:true}
+    # 是否注册脚手架演示心跳任务；默认关闭，请用「系统管理-定时任务」配置
+    demo-job-enabled: ${OMNI_QUARTZ_DEMO_JOB_ENABLED:false}
+    # 演示任务 Cron
+    demo-cron: ${OMNI_QUARTZ_DEMO_CRON:0 * * * * ?}
+
+# ---------- Resilience4j 方法级限流（与 Redis 入口限流互补）----------
+resilience4j:
+  ratelimiter:
+    configs:
+      default:
+        limit-for-period: ${omni.rate-limit.limit-for-period:100}
+        limit-refresh-period: ${omni.rate-limit.limit-refresh-period:1s}
+        timeout-duration: ${omni.rate-limit.timeout-duration:0}
+    instances:
+      # @RateLimiter(name = "api") 使用此实例
+      api:
+        base-config: default
+
+# ---------- 日志 ----------
+logging:
+  level:
+    root: INFO
+    com.omni.scaffolding: INFO
+  pattern:
+    # [%X{traceId}] 输出 MDC 中的链路 ID（由 TraceIdFilter 写入）
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n"

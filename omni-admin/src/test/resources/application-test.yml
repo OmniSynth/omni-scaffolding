@@ -1,0 +1,88 @@
+# =============================================================================
+# 测试环境配置（profile=test）
+# 使用内存 H2（MySQL 兼容模式）+ 简易缓存，并排除真实 Redis 自动配置
+# =============================================================================
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    # MODE=MySQL：尽量贴近生产 SQL 方言；库随 JVM 进程销毁
+    url: jdbc:h2:mem:omni;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    druid:
+      # 单测关闭监控页、Web 统计与 Wall，避免干扰 Flyway / MockMvc
+      stat-view-servlet:
+        enabled: false
+      web-stat-filter:
+        enabled: false
+      filter:
+        wall:
+          enabled: false
+
+  jpa:
+    hibernate:
+      # 表结构由 Flyway（migration-h2）创建，Hibernate 不再建表
+      ddl-auto: none
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    # 测试专用脚本，避免依赖真实 MySQL 方言细节
+    locations: classpath:db/migration-h2
+
+  cache:
+    # 单测不连 Redis，用本地 ConcurrentMap 缓存
+    type: simple
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      # 单测直接排除（EPP 可能早于 test profile 属性生效）
+      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ReactiveElasticsearchClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.elasticsearch.ElasticsearchRestHealthContributorAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.data.elasticsearch.ElasticsearchReactiveHealthContributorAutoConfiguration
+
+omni:
+  upload:
+    base-dir: ./target/test-uploads
+    url-prefix: /uploads
+  security:
+    jwt:
+      secret: test-secret-key-with-at-least-32-bytes!!
+    # 单测关闭加签，避免改造所有 login MockMvc 调用
+    sign:
+      enabled: false
+      secret: test-login-sign-secret
+    dynamic-permission:
+      enabled: false
+    permit-all:
+      - /api/auth/login
+      - /actuator/health/**
+      - /uploads/**
+  rate-limit:
+    # 单测关闭限流，避免干扰断言
+    enabled: false
+  kafka:
+    # 单测默认不启用 Kafka
+    enabled: false
+  elasticsearch:
+    # 单测默认不启用 Elasticsearch
+    enabled: false
+  quartz:
+    # 单测关闭 Quartz，避免依赖 QRTZ_* 表
+    enabled: false
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml

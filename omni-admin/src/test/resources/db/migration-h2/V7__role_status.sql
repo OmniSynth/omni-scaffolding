@@ -1,0 +1,3 @@
+ALTER TABLE sys_role ADD COLUMN status BOOLEAN NOT NULL DEFAULT TRUE;
+
+UPDATE sys_role SET status = TRUE WHERE deleted = 0;

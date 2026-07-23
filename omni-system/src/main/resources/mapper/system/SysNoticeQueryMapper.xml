@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysNoticeQueryMapper">
+
+    <sql id="NoticeSearchWhere">
+        WHERE n.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (n.title LIKE CONCAT('%', #{keyword}, '%')
+                OR n.content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">
+            AND n.status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND n.type = #{type}
+        </if>
+    </sql>
+
+    <sql id="NoticeColumns">
+        n.id,
+        n.title,
+        n.content,
+        n.type,
+        n.status,
+        n.publisher_id AS publisherId,
+        u.username AS publisherName,
+        n.publish_time AS publishTime
+    </sql>
+
+    <select id="countNotices" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_notice n
+        <include refid="NoticeSearchWhere"/>
+    </select>
+
+    <select id="listNotices" resultType="com.omni.scaffolding.modules.system.dto.NoticeView">
+        SELECT
+        <include refid="NoticeColumns"/>
+        FROM sys_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        <include refid="NoticeSearchWhere"/>
+        ORDER BY COALESCE(n.publish_time, n.created_at) DESC, n.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.system.dto.NoticeView">
+        SELECT
+        <include refid="NoticeColumns"/>
+        FROM sys_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        WHERE n.id = #{noticeId}
+          AND n.deleted = 0
+    </select>
+
+    <select id="listUnread" resultType="com.omni.scaffolding.modules.system.dto.NoticeView">
+        SELECT
+        <include refid="NoticeColumns"/>,
+        0 AS readFlag
+        FROM sys_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        WHERE n.deleted = 0
+          AND n.status = 1
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_notice_read r
+              WHERE r.notice_id = n.id AND r.user_id = #{userId}
+          )
+        ORDER BY COALESCE(n.publish_time, n.created_at) DESC, n.id DESC
+    </select>
+
+    <select id="countUnread" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_notice n
+        WHERE n.deleted = 0
+          AND n.status = 1
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_notice_read r
+              WHERE r.notice_id = n.id AND r.user_id = #{userId}
+          )
+    </select>
+
+    <select id="listInbox" resultType="com.omni.scaffolding.modules.system.dto.NoticeView">
+        SELECT
+        <include refid="NoticeColumns"/>,
+        CASE WHEN r.id IS NULL THEN 0 ELSE 1 END AS readFlag
+        FROM sys_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        LEFT JOIN sys_notice_read r ON r.notice_id = n.id AND r.user_id = #{userId}
+        WHERE n.deleted = 0
+          AND n.status = 1
+        ORDER BY COALESCE(n.publish_time, n.created_at) DESC, n.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="listUnreadIds" resultType="long">
+        SELECT n.id
+        FROM sys_notice n
+        WHERE n.deleted = 0
+          AND n.status = 1
+          AND NOT EXISTS (
+              SELECT 1 FROM sys_notice_read r
+              WHERE r.notice_id = n.id AND r.user_id = #{userId}
+          )
+    </select>
+</mapper>

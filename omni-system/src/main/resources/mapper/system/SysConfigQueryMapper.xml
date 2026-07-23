@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.system.mapper.SysConfigQueryMapper">
+
+    <sql id="ConfigSearchWhere">
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (config_key LIKE CONCAT('%', #{keyword}, '%')
+                OR config_name LIKE CONCAT('%', #{keyword}, '%')
+                OR config_value LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </sql>
+
+    <sql id="ConfigColumns">
+        id,
+        config_key AS configKey,
+        config_name AS configName,
+        config_value AS configValue,
+        remark,
+        sort,
+        status,
+        builtin
+    </sql>
+
+    <select id="countConfigs" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_config
+        <include refid="ConfigSearchWhere"/>
+    </select>
+
+    <select id="listConfigs" resultType="com.omni.scaffolding.modules.system.dto.ConfigView">
+        SELECT
+        <include refid="ConfigColumns"/>
+        FROM sys_config
+        <include refid="ConfigSearchWhere"/>
+        ORDER BY sort, id
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.system.dto.ConfigView">
+        SELECT
+        <include refid="ConfigColumns"/>
+        FROM sys_config
+        WHERE id = #{configId}
+          AND deleted = 0
+    </select>
+
+    <select id="findByKey" resultType="com.omni.scaffolding.modules.system.dto.ConfigView">
+        SELECT
+        <include refid="ConfigColumns"/>
+        FROM sys_config
+        WHERE config_key = #{configKey}
+          AND deleted = 0
+          AND status = 1
+    </select>
+</mapper>

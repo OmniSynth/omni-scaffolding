@@ -1,0 +1,11 @@
+**/target/
+!omni-admin/target/
+.git/
+.idea/
+.vscode/
+*.iml
+.env
+.env.*
+README.md
+**/src/test/
+.mvn/settings.xml

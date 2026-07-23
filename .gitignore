@@ -1,0 +1,59 @@
+# Maven / Java build
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+bin/
+out/
+
+# IntelliJ IDEA / JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+.fleet/
+
+# VS Code / Cursor
+.vscode/
+.cursor/
+*.code-workspace
+
+# Node / frontend build
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+.pnpm-store/
+
+# Local / temp
+.tmp-jar/
+.tmp/
+temp/
+tmp/
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Runtime data (local)
+data/
+uploads/
+help.md

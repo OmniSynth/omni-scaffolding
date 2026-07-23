@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 商品复杂读：动态条件搜索 + 类目聚合（演示 MyBatis 擅长的场景） -->
+<mapper namespace="com.omni.scaffolding.modules.demo.mapper.DemoProductQueryMapper">
+
+    <sql id="ProductSearchWhere">
+        WHERE deleted = 0
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%')
+                OR sku LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="minPrice != null">
+            AND price_cents &gt;= #{minPrice}
+        </if>
+        <if test="maxPrice != null">
+            AND price_cents &lt;= #{maxPrice}
+        </if>
+    </sql>
+
+    <select id="countProducts" resultType="long">
+        SELECT COUNT(1)
+        FROM demo_product
+        <include refid="ProductSearchWhere"/>
+    </select>
+
+    <!-- 多可选条件动态 SQL；结果映射到 ProductView，不复用 JPA Entity -->
+    <select id="searchProducts" resultType="com.omni.scaffolding.modules.demo.dto.ProductView">
+        SELECT id,
+               sku,
+               name,
+               category,
+               price_cents AS priceCents,
+               stock,
+               status,
+               created_at AS createdAt
+        FROM demo_product
+        <include refid="ProductSearchWhere"/>
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="categoryStats" resultType="com.omni.scaffolding.modules.demo.dto.CategoryStatsView">
+        SELECT category,
+               COUNT(*)                         AS productCount,
+               COALESCE(SUM(stock), 0)          AS totalStock,
+               CAST(COALESCE(AVG(price_cents), 0) AS SIGNED) AS avgPriceCents,
+               COALESCE(SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END), 0) AS activeCount
+        FROM demo_product
+        WHERE deleted = 0
+        GROUP BY category
+        ORDER BY productCount DESC
+    </select>
+</mapper>

@@ -1,0 +1,36 @@
+# =============================================================================
+# 生产环境配置（profile=prod）
+# 密钥 / 地址必须由环境变量注入，禁止把真实密码写进仓库
+# =============================================================================
+
+spring:
+  datasource:
+    # useSSL=true 建议生产开启；证书与网络策略按运维规范调整
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # 可按实例数与 DB max_connections 通过环境变量覆盖
+      maximum-pool-size: ${HIKARI_MAX_POOL:20}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      connection-timeout: 3000
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      # 与公共配置一致：命令超时，避免 VT 堆积
+      timeout: 2s
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    # 生产默认收敛日志量；业务包保留 INFO
+    root: WARN
+    com.omni.scaffolding: INFO

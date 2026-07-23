@@ -1,0 +1,38 @@
+# =============================================================================
+# 开发环境配置（profile=dev）
+# 敏感信息可用环境变量覆盖：DB_* / REDIS_*
+# =============================================================================
+
+spring:
+  datasource:
+    # MySQL JDBC；serverTimezone 需与业务时区一致
+    url: jdbc:mysql://${DB_HOST:192.168.3.10}:${DB_PORT:40785}/${DB_NAME:omni-scaffolding}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:SgQHvsy9M7LWKBCz}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.3.10}
+      port: ${REDIS_PORT:40782}
+      password: ${REDIS_PASSWORD:123456}
+      # Redis 逻辑库索引（0~15）
+      database: ${REDIS_DB:1}
+
+  jpa:
+    # 开发环境打印 SQL，便于对照双轨持久化
+    show-sql: true
+    hibernate:
+      # 仅校验，不自动改表；Schema 变更走 Flyway
+      ddl-auto: validate
+
+  # Kafka Broker（仅 omni.kafka.enabled=true 时连接）
+  kafka:
+    bootstrap-servers: ${KAFKA_HOSTS:192.168.6.80}:${KAFKA_PORT:9092}
+
+
+logging:
+  level:
+    com.omni.scaffolding: DEBUG
+    org.hibernate.SQL: DEBUG
+    com.baomidou.mybatisplus: DEBUG
