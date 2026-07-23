@@ -178,8 +178,46 @@ export REDIS_DB=1
 
 # 与 application.yml 默认 Sign 一致；前端构建须同源
 export OMNI_SIGN_SECRET='aS0mF6xP5mX3zS9hX0kN8gR2nC6iI8rC'
+# JWT ≥32；prod 必填。dev 不设时会吃 application.yml 默认，这里显式写出避免漏配
+export OMNI_JWT_SECRET='vWcunHYLV2yGl9xQsjbpBJk8MRT0N7Sg'
+# admin 登录密码（prod 首次启动写入库）；不要与 SIGN 相同，禁止 admin123
+export OMNI_ADMIN_INITIAL_PASSWORD='OmniDemo@2026!'
 # 与浏览器地址栏一致（dev 已有默认，显式写出便于排障）
 export OMNI_CORS_ORIGINS='https://omni-scaffolding.irez.cn'
+
+# ========== 1.1 密钥预检（失败则不必启动 Java）==========
+: "${OMNI_JWT_SECRET:?OMNI_JWT_SECRET 未设置}"
+: "${OMNI_SIGN_SECRET:?OMNI_SIGN_SECRET 未设置}"
+: "${OMNI_CORS_ORIGINS:?OMNI_CORS_ORIGINS 未设置}"
+: "${OMNI_ADMIN_INITIAL_PASSWORD:?OMNI_ADMIN_INITIAL_PASSWORD 未设置}"
+if [ "${#OMNI_JWT_SECRET}" -lt 32 ]; then
+  echo "错误: OMNI_JWT_SECRET 至少 32 字符/字节，当前=${#OMNI_JWT_SECRET}。生成: openssl rand -base64 32" >&2
+  exit 1
+fi
+if [ "${#OMNI_SIGN_SECRET}" -lt 8 ]; then
+  echo "错误: OMNI_SIGN_SECRET 至少 8 位，当前=${#OMNI_SIGN_SECRET}" >&2
+  exit 1
+fi
+case "${OMNI_SIGN_SECRET}" in
+  admin123|123456)
+    echo "错误: OMNI_SIGN_SECRET 禁止使用 admin123/123456（易与登录密码混淆）" >&2
+    exit 1
+    ;;
+esac
+if [ "${OMNI_SIGN_SECRET}" = "${OMNI_ADMIN_INITIAL_PASSWORD}" ]; then
+  echo "错误: OMNI_SIGN_SECRET 不能与 OMNI_ADMIN_INITIAL_PASSWORD 相同" >&2
+  exit 1
+fi
+if [ "${#OMNI_ADMIN_INITIAL_PASSWORD}" -lt 12 ]; then
+  echo "错误: OMNI_ADMIN_INITIAL_PASSWORD 至少 12 位，当前=${#OMNI_ADMIN_INITIAL_PASSWORD}" >&2
+  exit 1
+fi
+case "${OMNI_ADMIN_INITIAL_PASSWORD}" in
+  admin123|123456)
+    echo "错误: OMNI_ADMIN_INITIAL_PASSWORD 不能使用演示密码 admin123/123456" >&2
+    exit 1
+    ;;
+esac
 
 WEB_DEPLOY_DIR=/var/www/html/omni-scaffolding
 JAR_NAME=omni-admin-1.0.0-SNAPSHOT.jar
