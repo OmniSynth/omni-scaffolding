@@ -269,6 +269,15 @@ omni:
       expiration-ms: ${OMNI_JWT_EXPIRATION_MS:86400000}
     # @IpWhitelist 兜底 IP 列表（优先 sys_ip_whitelist 表；表空时才用本配置）
     ip-whitelist: ${OMNI_SECURITY_IP_WHITELIST:127.0.0.1,0:0:0:0:0:0:0:1}
+    # CORS：浏览器会带 Origin（含 nginx 同源反代）；生产请在 application-prod 覆盖为站点域名
+    cors:
+      allowed-origin-patterns:
+        - http://localhost:*
+        - http://127.0.0.1:*
+        - http://192.168.*.*:*
+        - http://10.*.*.*:*
+        - http://172.*.*.*:*
+
     # Security 白名单：匿名可访问
     permit-all:
       - /api/auth/login

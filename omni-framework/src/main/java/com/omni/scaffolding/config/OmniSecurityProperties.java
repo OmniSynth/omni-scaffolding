@@ -61,6 +61,11 @@ public class OmniSecurityProperties {
      */
     private String ipWhitelist = "127.0.0.1,0:0:0:0:0:0:0:1";
 
+    /**
+     * 浏览器 CORS；生产需把站点 Origin（含协议）加入白名单，否则登录等带 Origin 的请求会被拒。
+     */
+    private Cors cors = new Cors();
+
     @Data
     public static class Jwt {
         /**
@@ -219,5 +224,26 @@ public class OmniSecurityProperties {
          * 管理员重置密码后要求强制改密。
          */
         private boolean forceChangeOnReset = true;
+    }
+
+    /**
+     * CORS 白名单。
+     *
+     * <p>支持 {@link CorsConfiguration#setAllowedOriginPatterns} 通配（如 {@code http://localhost:*}）。
+     * nginx 同源反代时浏览器仍会带 Origin，未命中白名单会返回 {@code Invalid CORS request}。
+     */
+    @Data
+    public static class Cors {
+
+        /**
+         * 允许的 Origin 模式列表；默认仅本机 / 局域网 Vite 开发端口。
+         */
+        private List<String> allowedOriginPatterns = new ArrayList<>(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*",
+                "http://10.*.*.*:*",
+                "http://172.*.*.*:*"
+        ));
     }
 }

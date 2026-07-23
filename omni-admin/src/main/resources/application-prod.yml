@@ -64,6 +64,11 @@ omni:
       secret: ${OMNI_JWT_SECRET}
     sign:
       secret: ${OMNI_SIGN_SECRET}
+    # 生产站点 Origin（含协议），与浏览器地址栏一致；多个用逗号分隔
+    # 例：OMNI_CORS_ORIGINS=http://omni-scaffolding.irez.cn,https://omni-scaffolding.irez.cn
+    cors:
+      allowed-origin-patterns:
+        - ${OMNI_CORS_ORIGINS}
     # 覆盖公共白名单：生产不匿名开放 Swagger、Prometheus 和 metrics
     # Druid 自带登录与 IP 白名单；默认关闭，开启后仍需由内网反向代理限制入口
     permit-all:
