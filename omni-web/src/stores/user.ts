@@ -8,7 +8,7 @@ const USER_KEY = 'omni_user_profile'
 const MENU_KEY = 'omni_user_menus'
 const DYNAMIC_KEY = 'omni_dynamic_permission'
 
-/** 动态权限开启时，路由切换刷新 /me 的最小间隔（毫秒） */
+/** 动态权限开启时，后台刷新 /me 的最小间隔（毫秒） */
 const ME_REFRESH_INTERVAL_MS = 10_000
 
 interface StoredProfile {
@@ -101,6 +101,8 @@ export const useUserStore = defineStore('user', () => {
   const menus = ref<MenuTreeNode[]>(loadMenus())
   const dynamicPermission = ref(localStorage.getItem(DYNAMIC_KEY) === '1')
   const lastMeLoadedAt = ref(0)
+  /** 避免动态权限下并发刷 /me */
+  let meLoading: Promise<void> | null = null
 
   const isLoggedIn = computed(() => !!token.value)
   const username = computed(() => profile.value?.username || '')
@@ -127,6 +129,10 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function persistMenus(next: MenuTreeNode[]) {
+    // 内容不变时不触发侧栏重渲染，避免 el-menu 偶发失去点击响应
+    if (JSON.stringify(menus.value) === JSON.stringify(next)) {
+      return
+    }
     menus.value = next
     localStorage.setItem(MENU_KEY, JSON.stringify(next))
   }
@@ -149,7 +155,13 @@ export const useUserStore = defineStore('user', () => {
       permissions: data.permissions || [],
       mustChangePwd: !!data.mustChangePwd,
     })
-    await loadMe(true)
+    try {
+      await loadMe(true)
+    } catch (err) {
+      // 已写入 token 但会话拉取失败时回滚，避免停在登录页却带脏 token（刷新才「突然」进系统）
+      clearSession()
+      throw err
+    }
     return data
   }
 
@@ -161,19 +173,38 @@ export const useUserStore = defineStore('user', () => {
     if (!force && dynamicPermission.value && now - lastMeLoadedAt.value < ME_REFRESH_INTERVAL_MS) {
       return
     }
-    const me = await fetchCurrentUser()
-    persistProfile(toStoredProfile(me))
-    persistMenus(me.menus || [])
-    persistDynamicPermission(!!me.dynamicPermission)
-    lastMeLoadedAt.value = now
+    if (meLoading) {
+      if (!force) {
+        return meLoading
+      }
+      await meLoading.catch(() => undefined)
+    }
+    meLoading = (async () => {
+      const me = await fetchCurrentUser()
+      persistProfile(toStoredProfile(me))
+      persistMenus(me.menus || [])
+      persistDynamicPermission(!!me.dynamicPermission)
+      lastMeLoadedAt.value = Date.now()
+    })()
+    try {
+      await meLoading
+    } finally {
+      meLoading = null
+    }
   }
 
   /**
-   * 路由守卫用：动态权限开启时定期刷新；关闭时仅在本地无菜单时拉取一次。
+   * 路由守卫用：无本地会话时阻塞拉取；动态权限仅后台刷新，避免 await /me 拖死/取消菜单导航。
    */
   async function ensureSession(): Promise<void> {
-    if (dynamicPermission.value || !menus.value.length) {
-      await loadMe(!menus.value.length)
+    if (!menus.value.length || !profile.value) {
+      await loadMe(true)
+      return
+    }
+    if (dynamicPermission.value) {
+      void loadMe(false).catch(() => {
+        // 后台刷新失败不踢出；下一次导航或强制刷新再试
+      })
     }
   }
 
@@ -184,6 +215,7 @@ export const useUserStore = defineStore('user', () => {
     menus.value = []
     dynamicPermission.value = false
     lastMeLoadedAt.value = 0
+    meLoading = null
     clearToken()
     localStorage.removeItem(USER_KEY)
     localStorage.removeItem(MENU_KEY)

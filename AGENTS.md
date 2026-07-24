@@ -203,7 +203,7 @@ boolean existsByCodeAndDeleted(String code, Integer deleted);
 3. 动态权限开启时改菜单后依赖缓存失效（已有 `PermissionCacheEvictor`，菜单写路径会调用）
 4. 文件访问走统一文件 API（鉴权或短时签名），**不要**再做匿名静态 `/uploads`
 5. 可选能力用开关：`omni.kafka.enabled` / `omni.elasticsearch.enabled` / `omni.quartz.enabled`，默认勿强依赖中间件
-6. 登录面：验证码 / 失败锁定 / 密码策略见 `omni.security.captcha|login-lock|password-policy`；换皮清单见 [docs/ADOPT.md](./docs/ADOPT.md)
+6. 登录面：验证码 / 失败锁定 / 并发设备上限 / 密码策略见 `omni.security.captcha|login-lock|session-limit|password-policy`；换皮清单见 [docs/ADOPT.md](./docs/ADOPT.md)
 
 ---
 

@@ -2,6 +2,7 @@ package com.omni.scaffolding.infra.ratelimit;
 
 import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.exception.BusinessException;
+import com.omni.scaffolding.common.util.IpUtils;
 import com.omni.scaffolding.security.AuthUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -61,6 +62,9 @@ public class ApiRateLimitInterceptor implements HandlerInterceptor {
         if (auth != null && auth.getPrincipal() instanceof AuthUser user) {
             return "user:" + user.getId();
         }
-        return "ip:" + request.getRemoteAddr();
+        return "ip:" + IpUtils.resolveClientIp(
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"),
+                request.getRemoteAddr());
     }
 }

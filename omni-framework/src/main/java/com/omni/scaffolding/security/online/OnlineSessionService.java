@@ -161,6 +161,56 @@ public class OnlineSessionService {
     }
 
     /**
+     * 将用户有效会话裁剪到不超过 {@code maxDevices}（按登录时间升序踢最旧）。
+     *
+     * <p>应在 {@link #register} 之后调用，使「旧会话 + 本次」合计再裁剪。
+     * {@code maxDevices ≤ 0} 时不处理。
+     *
+     * @param userId     用户 ID
+     * @param maxDevices 上限
+     * @return 实际踢下线的会话数
+     */
+    public int trimToMaxSessions(Long userId, int maxDevices) {
+        if (userId == null || maxDevices <= 0) {
+            return 0;
+        }
+        Set<String> jtIs = redisService.sMembers(RedisKeys.onlineUser(userId));
+        if (jtIs.isEmpty() || jtIs.size() <= maxDevices) {
+            return 0;
+        }
+        List<OnlineSession> active = new ArrayList<>();
+        for (String jti : jtIs) {
+            if (!isActive(jti)) {
+                continue;
+            }
+            String json = redisService.get(RedisKeys.onlineSession(jti));
+            OnlineSession session = fromJson(json);
+            if (session == null) {
+                // 无详情但未入黑名单：按未知登录时间处理，优先踢掉
+                session = new OnlineSession();
+                session.setJti(jti);
+                session.setUserId(userId);
+                session.setLoginTime(0L);
+            }
+            active.add(session);
+        }
+        if (active.size() <= maxDevices) {
+            return 0;
+        }
+        active.sort(Comparator.comparing(OnlineSession::getLoginTime, Comparator.nullsFirst(Long::compareTo)));
+        int kickCount = active.size() - maxDevices;
+        int kicked = 0;
+        for (int i = 0; i < kickCount; i++) {
+            String jti = active.get(i).getJti();
+            if (StringUtils.hasText(jti)) {
+                kickByJti(jti);
+                kicked++;
+            }
+        }
+        return kicked;
+    }
+
+    /**
      * 当前令牌主动登出。
      *
      * @param jti 当前 JWT ID

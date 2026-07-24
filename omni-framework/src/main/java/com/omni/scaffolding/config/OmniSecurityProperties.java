@@ -51,6 +51,11 @@ public class OmniSecurityProperties {
     private LoginLock loginLock = new LoginLock();
 
     /**
+     * 同账号最大同时在线设备数（踢最旧）。
+     */
+    private SessionLimit sessionLimit = new SessionLimit();
+
+    /**
      * 密码复杂度与强制改密策略。
      */
     private PasswordPolicy passwordPolicy = new PasswordPolicy();
@@ -201,6 +206,26 @@ public class OmniSecurityProperties {
          * 锁定时长（秒），同时作为失败计数窗口。
          */
         private int lockSeconds = 900;
+    }
+
+    /**
+     * 同账号并发登录设备上限。
+     *
+     * <p>运行时可由系统参数 {@code sys.security.session-limit.*} 覆盖；
+     * {@code maxDevices ≤ 0} 或关闭开关表示不限制。
+     */
+    @Data
+    public static class SessionLimit {
+
+        /**
+         * 是否启用并发设备限制，默认开启。
+         */
+        private boolean enabled = true;
+
+        /**
+         * 每用户最大同时在线设备数；≤0 表示不限制。
+         */
+        private int maxDevices = 3;
     }
 
     /**

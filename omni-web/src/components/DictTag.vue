@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useDict } from '@/composables/useDict'
+import DictStyleTag from '@/components/DictStyleTag.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -28,21 +29,11 @@ watch(
 )
 
 const label = computed(() => labelOf(props.value) || props.emptyText)
-
-const tagType = computed(() => {
-  const css = optionOf(props.value)?.cssClass?.trim().toLowerCase() || ''
-  if (['success', 'warning', 'danger', 'info', 'primary'].includes(css)) {
-    return css as 'success' | 'warning' | 'danger' | 'info' | 'primary'
-  }
-  return 'info'
-})
-
+const cssClass = computed(() => optionOf(props.value)?.cssClass || '')
 const showTag = computed(() => !!props.value && options.value.some((item) => item.value === props.value))
 </script>
 
 <template>
-  <el-tag v-if="showTag" :type="tagType === 'primary' ? undefined : tagType" :size="size">
-    {{ label }}
-  </el-tag>
+  <DictStyleTag v-if="showTag" :css-class="cssClass" :label="label" :size="size" />
   <span v-else>{{ label }}</span>
 </template>

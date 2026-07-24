@@ -29,6 +29,20 @@ public final class ConfigKeys {
      */
     public static final String UI_WATERMARK = "sys.ui.watermark";
 
+    /**
+     * 是否启用同账号并发登录设备限制。
+     *
+     * <p>取值：{@code true} / {@code false}（大小写不敏感）；覆盖 YAML {@code omni.security.session-limit.enabled}。
+     */
+    public static final String SECURITY_SESSION_LIMIT_ENABLED = "sys.security.session-limit.enabled";
+
+    /**
+     * 每用户最大同时在线设备数。
+     *
+     * <p>整数；≤0 表示不限制。覆盖 YAML {@code omni.security.session-limit.max-devices}。
+     */
+    public static final String SECURITY_SESSION_LIMIT_MAX_DEVICES = "sys.security.session-limit.max-devices";
+
     private ConfigKeys() {
     }
 }

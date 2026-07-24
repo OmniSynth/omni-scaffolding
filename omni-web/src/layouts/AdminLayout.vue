@@ -18,9 +18,15 @@ const userStore = useUserStore()
 const tagsStore = useTagsViewStore()
 
 const watermarkEnabled = ref(false)
+/** 防止侧栏连点触发并发导航互相取消 */
+const navigating = ref(false)
 
 const activeMenu = computed(() => route.path)
 const sidebar = computed(() => toSidebarItems(userStore.menus))
+/** 菜单树身份变化时重挂载 el-menu，避免动态权限刷新后点击失灵 */
+const menuRenderKey = computed(() =>
+  userStore.menus.map((m) => `${m.id}:${m.type}:${m.path || ''}`).join('|'),
+)
 const avatarLetter = computed(() => (userStore.displayName || userStore.username || '?').slice(0, 1))
 const watermarkContent = computed(() => {
   const name = userStore.displayName || userStore.username || 'Omni'
@@ -33,6 +39,18 @@ async function loadWatermarkFlag() {
     watermarkEnabled.value = String(raw ?? '').trim().toLowerCase() === 'true'
   } catch {
     watermarkEnabled.value = false
+  }
+}
+
+async function onMenuSelect(index: string) {
+  if (!index || index.startsWith('dir-') || index === route.path || navigating.value) {
+    return
+  }
+  navigating.value = true
+  try {
+    await router.push(index)
+  } finally {
+    navigating.value = false
   }
 }
 
@@ -63,7 +81,14 @@ onMounted(loadWatermarkFlag)
     <el-container class="layout">
       <el-aside width="220px" class="aside">
         <div class="brand">Omni Admin</div>
-        <el-menu :default-active="activeMenu" router background-color="#0f172a" text-color="#cbd5e1" active-text-color="#fff">
+        <el-menu
+          :key="menuRenderKey"
+          :default-active="activeMenu"
+          background-color="#0f172a"
+          text-color="#cbd5e1"
+          active-text-color="#fff"
+          @select="onMenuSelect"
+        >
           <el-menu-item index="/home">
             <el-icon><HomeFilled /></el-icon>
             <span>首页</span>
@@ -136,6 +161,8 @@ onMounted(loadWatermarkFlag)
 }
 .aside {
   background: #0f172a;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .brand {
   height: 56px;

@@ -171,6 +171,8 @@ spring:
       org.quartz.jobStore.clusterCheckinInterval: 10000
       # 勿手动指定 jobStore.class=JobStoreTX，否则绕过 Boot 的 LocalDataSourceJobStore（会报 DataSource name not set）
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+      # 表前缀必须与库中表名大小写一致。Quartz 拼出的是 QRTZ_JOB_DETAILS 这类全大写名；
+      # Linux MySQL（lower_case_table_names=0）若建成 qrtz_* 小写会报不存在，见 sql/fix_qrtz_uppercase.sql
       org.quartz.jobStore.tablePrefix: QRTZ_
       # Quartz 工作线程池（与虚拟线程无关）
       org.quartz.threadPool.threadCount: 5
@@ -308,6 +310,11 @@ omni:
       enabled: ${OMNI_SECURITY_LOGIN_LOCK_ENABLED:true}
       max-failures: ${OMNI_SECURITY_LOGIN_LOCK_MAX_FAILURES:5}
       lock-seconds: ${OMNI_SECURITY_LOGIN_LOCK_SECONDS:900}
+    # ---------- 同账号最大同时在线设备数（超限踢最旧；可由系统参数覆盖）----------
+    session-limit:
+      enabled: ${OMNI_SECURITY_SESSION_LIMIT_ENABLED:true}
+      # ≤0 表示不限制
+      max-devices: ${OMNI_SECURITY_SESSION_LIMIT_MAX_DEVICES:3}
     # ---------- 密码策略（创建 / 重置 / 本人修改）----------
     password-policy:
       min-length: ${OMNI_SECURITY_PWD_MIN_LENGTH:6}

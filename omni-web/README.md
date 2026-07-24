@@ -30,9 +30,9 @@ npm install
 npm run dev
 ```
 
-浏览器打开 [http://localhost:5173](http://localhost:5173)。
+浏览器打开 [http://localhost:5173](http://localhost:5173)；局域网可用本机 IP（`vite` 已 `host: true`）。
 
-开发代理：`/api` → `http://localhost:8080`（见 `vite.config.ts`）。
+开发代理：`/api` → `http://127.0.0.1:8080`，并开启 `xfwd`，把浏览器真实 IP 传给后端（登录日志 / 限流）；否则后端只会看到 `127.0.0.1`。
 
 默认账号与后端一致：`admin` / `admin123`。
 

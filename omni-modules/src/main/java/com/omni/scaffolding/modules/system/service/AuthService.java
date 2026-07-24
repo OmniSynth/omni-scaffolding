@@ -2,6 +2,7 @@ package com.omni.scaffolding.modules.system.service;
 
 import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.cache.CacheNames;
+import com.omni.scaffolding.common.cache.ConfigKeys;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.config.OmniSecurityProperties;
 import com.omni.scaffolding.infra.file.FileContentSigner;
@@ -61,6 +62,7 @@ public class AuthService {
     private final CaptchaService captchaService;
     private final LoginLockService loginLockService;
     private final PasswordPolicyValidator passwordPolicyValidator;
+    private final ConfigService configService;
 
     /**
      * 签发登录验证码挑战。
@@ -125,11 +127,42 @@ public class AuthService {
                 user.getUsername(), user.getId(), user.getDeptId(), dataScope, roles, permissions);
         onlineSessionService.register(
                 issued.jti(), user.getId(), user.getUsername(), user.getDeptId(), ip, userAgent, issued.expireAt());
+        enforceSessionLimit(user.getId());
         loginLogService.record(user.getId(), username, ip, userAgent, true, "登录成功");
         boolean mustChange = Boolean.TRUE.equals(user.getMustChangePwd());
         return new LoginResponse(
                 issued.accessToken(), "Bearer", user.getId(), user.getUsername(), user.getDeptId(),
                 dataScope, roles, permissions, mustChange);
+    }
+
+    /**
+     * 按系统参数（优先）或 YAML 限制同账号同时在线设备数；超限踢最旧。
+     *
+     * <p>参数键：{@link ConfigKeys#SECURITY_SESSION_LIMIT_ENABLED} /
+     * {@link ConfigKeys#SECURITY_SESSION_LIMIT_MAX_DEVICES}。
+     * 关闭或 {@code maxDevices ≤ 0} 时不限制。
+     */
+    private void enforceSessionLimit(Long userId) {
+        OmniSecurityProperties.SessionLimit defaults = securityProperties.getSessionLimit();
+        boolean enabled = defaults.isEnabled();
+        int maxDevices = defaults.getMaxDevices();
+
+        String enabledCfg = configService.getValue(ConfigKeys.SECURITY_SESSION_LIMIT_ENABLED);
+        if (enabledCfg != null && !enabledCfg.isBlank()) {
+            enabled = Boolean.parseBoolean(enabledCfg.trim());
+        }
+        String maxCfg = configService.getValue(ConfigKeys.SECURITY_SESSION_LIMIT_MAX_DEVICES);
+        if (maxCfg != null && !maxCfg.isBlank()) {
+            try {
+                maxDevices = Integer.parseInt(maxCfg.trim());
+            } catch (NumberFormatException ignored) {
+                // 非法值回落 YAML
+            }
+        }
+        if (!enabled || maxDevices <= 0) {
+            return;
+        }
+        onlineSessionService.trimToMaxSessions(userId, maxDevices);
     }
 
     /**

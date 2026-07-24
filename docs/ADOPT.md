@@ -63,6 +63,9 @@ omni:
       enabled: true
       max-failures: 5
       lock-seconds: 900
+    session-limit:
+      enabled: true
+      max-devices: 3
     password-policy:
       min-length: 8
       require-uppercase: true
@@ -95,5 +98,5 @@ omni:
 [ ] 生产密钥已外置
 [ ] Flyway + H2 同步
 [ ] CI 绿（`.github/workflows/ci.yml`）
-[ ] 登录：验证码 / 锁定 / 改密策略符合环境预期
+[ ] 登录：验证码 / 锁定 / 并发设备上限 / 改密策略符合环境预期
 ```

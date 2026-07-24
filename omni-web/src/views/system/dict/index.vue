@@ -17,6 +17,8 @@ import {
 } from '@/api/system/dict'
 import { useUserStore } from '@/stores/user'
 import type { DictDataView, DictTypeView } from '@/types/api'
+import { DICT_STYLE_OPTIONS, normalizeDictCssClass } from '@/constants/dictStyles'
+import DictStyleTag from '@/components/DictStyleTag.vue'
 
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.hasPermission('system:dict:edit'))
@@ -246,7 +248,7 @@ function openEditData(row: DictDataView) {
     label: row.label,
     value: row.value,
     sort: row.sort,
-    cssClass: row.cssClass || '',
+    cssClass: normalizeDictCssClass(row.cssClass),
     defaultFlag: row.defaultFlag,
     status: row.status,
     remark: row.remark || '',
@@ -414,7 +416,11 @@ onMounted(loadTypes)
         <el-table-column prop="label" label="标签" min-width="100" />
         <el-table-column prop="value" label="键值" min-width="100" />
         <el-table-column prop="sort" label="排序" width="70" />
-        <el-table-column prop="cssClass" label="样式类" width="100" show-overflow-tooltip />
+        <el-table-column label="回显样式" min-width="120">
+          <template #default="{ row }">
+            <DictStyleTag :css-class="row.cssClass" :label="row.label" />
+          </template>
+        </el-table-column>
         <el-table-column label="默认" width="70">
           <template #default="{ row }">
             <el-tag :type="row.defaultFlag ? 'warning' : 'info'" size="small">
@@ -490,7 +496,7 @@ onMounted(loadTypes)
     </template>
   </el-dialog>
 
-  <el-dialog v-model="dataDialogVisible" :title="dataEditingId == null ? '新增字典数据' : '编辑字典数据'" width="520px">
+  <el-dialog v-model="dataDialogVisible" :title="dataEditingId == null ? '新增字典数据' : '编辑字典数据'" width="580px">
     <el-form ref="dataFormRef" :model="dataForm" :rules="dataRules" label-width="90px">
       <el-form-item label="类型编码">
         <el-input v-model="dataForm.typeCode" disabled />
@@ -504,8 +510,26 @@ onMounted(loadTypes)
       <el-form-item label="排序">
         <el-input-number v-model="dataForm.sort" :min="0" />
       </el-form-item>
-      <el-form-item label="样式类">
-        <el-input v-model="dataForm.cssClass" placeholder="如 success / info / danger" />
+      <el-form-item label="回显样式">
+        <div class="style-picker">
+          <button
+            v-for="opt in DICT_STYLE_OPTIONS"
+            :key="opt.value || 'default'"
+            type="button"
+            class="style-swatch"
+            :class="{ active: dataForm.cssClass === opt.value }"
+            :title="opt.label"
+            :style="{ backgroundColor: opt.bg, borderColor: opt.border, color: opt.color }"
+            @click="dataForm.cssClass = opt.value"
+          >
+            <span class="style-swatch-dot" :style="{ backgroundColor: opt.color }" />
+            <span class="style-swatch-name">{{ opt.label }}</span>
+          </button>
+        </div>
+        <div class="css-preview">
+          预览：
+          <DictStyleTag :css-class="dataForm.cssClass" :label="dataForm.label || '示例标签'" />
+        </div>
       </el-form-item>
       <el-form-item label="默认项">
         <el-switch v-model="dataForm.defaultFlag" />
@@ -550,6 +574,53 @@ onMounted(loadTypes)
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+.style-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+.style-swatch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #fff;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.style-swatch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.style-swatch.active {
+  box-shadow: 0 0 0 2px #2563eb inset;
+}
+.style-swatch-dot {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.style-swatch-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+.css-preview {
+  margin-top: 10px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 @media (max-width: 1100px) {
   .dict-layout {

@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { fetchCaptcha } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import { getToken } from '@/utils/request'
 
 const router = useRouter()
 const route = useRoute()
@@ -40,6 +41,31 @@ const rules: FormRules = {
   ],
 }
 
+/** 仅允许站内相对路径，避免开放重定向或无效 redirect 导致跳转失败。 */
+function resolvePostLoginTarget(raw: unknown, mustChangePwd: boolean) {
+  if (mustChangePwd) {
+    return { path: '/profile', query: { forcePwd: '1' } }
+  }
+  if (typeof raw !== 'string') {
+    return '/home'
+  }
+  const path = raw.trim()
+  if (!path.startsWith('/') || path.startsWith('//') || path.startsWith('/login')) {
+    return '/home'
+  }
+  return path
+}
+
+async function navigateAfterLogin(target: string | { path: string; query?: Record<string, string> }) {
+  await nextTick()
+  await router.replace(target)
+  await nextTick()
+  // 部分环境下导航被取消后仍停在登录页，但 token 已写入；兜底再跳一次
+  if (route.path === '/login' && getToken()) {
+    await router.replace(typeof target === 'string' ? '/home' : target)
+  }
+}
+
 async function loadCaptcha() {
   captchaLoading.value = true
   try {
@@ -58,7 +84,7 @@ async function loadCaptcha() {
 }
 
 async function onSubmit() {
-  if (!formRef.value) {
+  if (!formRef.value || loading.value) {
     return
   }
   await formRef.value.validate()
@@ -71,12 +97,8 @@ async function onSubmit() {
       captchaCode: captchaEnabled.value ? form.captchaCode : undefined,
     })
     ElMessage.success('登录成功')
-    if (result.mustChangePwd) {
-      await router.replace({ path: '/profile', query: { forcePwd: '1' } })
-      return
-    }
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/home'
-    await router.replace(redirect)
+    const target = resolvePostLoginTarget(route.query.redirect, !!result.mustChangePwd)
+    await navigateAfterLogin(target)
   } catch {
     await loadCaptcha()
   } finally {

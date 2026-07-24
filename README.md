@@ -157,6 +157,7 @@ flowchart TB
 - **认证**：JWT（无状态，便于水平扩展）  
 - **登录验证码**：图形验证码（Redis 一次性）；`OMNI_SECURITY_CAPTCHA_ENABLED`  
 - **登录锁定**：连续失败按用户名锁定；`omni.security.login-lock.*`  
+- **并发登录**：同账号最大同时在线设备数，超限踢最旧；YAML `omni.security.session-limit.*`，运行时可由系统参数 `sys.security.session-limit.enabled` / `sys.security.session-limit.max-devices` 覆盖（关闭或 `max-devices≤0` 不限制）  
 - **密码策略**：复杂度 + 新建/重置强制改密；`omni.security.password-policy.*`  
 - **授权**：菜单 / 按钮权限码（如 `system:config:edit`），与前端 `v-permission`、`@PreAuthorize` 同字符串  
 - **数据范围**：`ALL` / `DEPT_AND_CHILD` / `DEPT` / `SELF`  
@@ -337,6 +338,8 @@ spring:
 关闭：`OMNI_QUARTZ_ENABLED=false`（会排除 `QuartzAutoConfiguration`）。  
 管理端维护 `sys_job`，启动时同步到 Scheduler。  
 验证多实例：起两台相同服务，同一分钟应只有一台触发。长任务请加 `@DisallowConcurrentExecution`，业务逻辑须幂等。
+
+**表名大小写：** Quartz 查询的是 `QRTZ_JOB_DETAILS` 等**全大写**表名。Linux MySQL（`lower_case_table_names=0`）若建成 `qrtz_*` 小写会报不存在；仅改名后外键仍可能指向小写表，统一执行 [`sql/fix_qrtz_uppercase.sql`](./sql/fix_qrtz_uppercase.sql)（会清空 QRTZ 运行时数据，`sys_job` 保留，重启后自动同步），再重启应用。
 
 ### 可观测性
 
