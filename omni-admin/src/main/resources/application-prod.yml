@@ -82,6 +82,7 @@ omni:
       - /actuator/info
       - /druid/**
       - /api/system/files/*/content
+      - /api/open/**
 
 logging:
   level:

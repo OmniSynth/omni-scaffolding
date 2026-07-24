@@ -113,6 +113,38 @@ export interface PostView {
   status: boolean
 }
 
+export interface OpenEndpointView {
+  id: number
+  code: string
+  name: string
+  httpMethod: string
+  pathPattern: string
+  remark?: string
+  status: boolean
+}
+
+export interface OpenClientView {
+  id: number
+  name: string
+  accessKey: string
+  dailyLimit?: number | null
+  qpsLimit?: number | null
+  expireAt?: string | null
+  remark?: string
+  status: boolean
+  ipList?: string[]
+  endpointIds?: number[]
+  todayUsed?: number
+}
+
+export interface OpenClientCredentialsView {
+  id: number
+  name: string
+  accessKey: string
+  apiKey: string
+  accessSecret: string
+}
+
 export interface DictTypeView {
   id: number
   code: string

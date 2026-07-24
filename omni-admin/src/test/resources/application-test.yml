@@ -84,6 +84,7 @@ omni:
       - /api/auth/captcha
       - /actuator/health/**
       - /api/system/files/*/content
+      - /api/open/**
   rate-limit:
     # 单测关闭限流，避免干扰断言
     enabled: false

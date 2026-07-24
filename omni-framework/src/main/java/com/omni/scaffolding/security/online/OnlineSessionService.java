@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.cache.RedisKeys;
 import com.omni.scaffolding.common.exception.BusinessException;
+import com.omni.scaffolding.infra.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class OnlineSessionService {
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -69,10 +69,10 @@ public class OnlineSessionService {
 
         String json = toJson(session);
         Duration ttl = Duration.ofMillis(ttlMs);
-        stringRedisTemplate.opsForValue().set(RedisKeys.onlineSession(jti), json, ttl);
-        stringRedisTemplate.opsForSet().add(RedisKeys.onlineUser(userId), jti);
-        stringRedisTemplate.expire(RedisKeys.onlineUser(userId), ttl);
-        stringRedisTemplate.opsForSet().add(RedisKeys.ONLINE_INDEX, jti);
+        redisService.set(RedisKeys.onlineSession(jti), json, ttl);
+        redisService.sAdd(RedisKeys.onlineUser(userId), jti);
+        redisService.expire(RedisKeys.onlineUser(userId), ttl);
+        redisService.sAdd(RedisKeys.ONLINE_INDEX, jti);
     }
 
     /**
@@ -88,7 +88,7 @@ public class OnlineSessionService {
         if (!StringUtils.hasText(jti)) {
             return true;
         }
-        return !Boolean.TRUE.equals(stringRedisTemplate.hasKey(RedisKeys.onlineBlacklist(jti)));
+        return !redisService.hasKey(RedisKeys.onlineBlacklist(jti));
     }
 
     /**
@@ -97,14 +97,14 @@ public class OnlineSessionService {
      * @return 在线会话列表
      */
     public List<OnlineSession> listOnline() {
-        Set<String> jtIs = stringRedisTemplate.opsForSet().members(RedisKeys.ONLINE_INDEX);
-        if (jtIs == null || jtIs.isEmpty()) {
+        Set<String> jtIs = redisService.sMembers(RedisKeys.ONLINE_INDEX);
+        if (jtIs.isEmpty()) {
             return List.of();
         }
         List<OnlineSession> sessions = new ArrayList<>();
         List<String> stale = new ArrayList<>();
         for (String jti : jtIs) {
-            String json = stringRedisTemplate.opsForValue().get(RedisKeys.onlineSession(jti));
+            String json = redisService.get(RedisKeys.onlineSession(jti));
             if (!StringUtils.hasText(json)) {
                 stale.add(jti);
                 continue;
@@ -117,7 +117,7 @@ public class OnlineSessionService {
             }
         }
         if (!stale.isEmpty()) {
-            stringRedisTemplate.opsForSet().remove(RedisKeys.ONLINE_INDEX, stale.toArray());
+            redisService.sRemove(RedisKeys.ONLINE_INDEX, stale.toArray());
         }
         sessions.sort(Comparator.comparing(OnlineSession::getLoginTime, Comparator.nullsLast(Long::compareTo)).reversed());
         return sessions;
@@ -132,7 +132,7 @@ public class OnlineSessionService {
         if (!StringUtils.hasText(jti)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "会话标识不能为空");
         }
-        String json = stringRedisTemplate.opsForValue().get(RedisKeys.onlineSession(jti));
+        String json = redisService.get(RedisKeys.onlineSession(jti));
         OnlineSession session = fromJson(json);
         long ttlMs = resolveTtlMs(session, jti);
         blacklist(jti, ttlMs);
@@ -148,8 +148,8 @@ public class OnlineSessionService {
         if (userId == null) {
             return 0;
         }
-        Set<String> jtIs = stringRedisTemplate.opsForSet().members(RedisKeys.onlineUser(userId));
-        if (jtIs == null || jtIs.isEmpty()) {
+        Set<String> jtIs = redisService.sMembers(RedisKeys.onlineUser(userId));
+        if (jtIs.isEmpty()) {
             return 0;
         }
         int count = 0;
@@ -182,7 +182,7 @@ public class OnlineSessionService {
         if (ttlMs <= 0) {
             ttlMs = TimeUnit.HOURS.toMillis(1);
         }
-        stringRedisTemplate.opsForValue().set(RedisKeys.onlineBlacklist(jti), "1", Duration.ofMillis(ttlMs));
+        redisService.set(RedisKeys.onlineBlacklist(jti), "1", Duration.ofMillis(ttlMs));
     }
 
     /**
@@ -192,10 +192,10 @@ public class OnlineSessionService {
      * @param userId 用户 ID，可为 null
      */
     private void removeSessionKeys(String jti, Long userId) {
-        stringRedisTemplate.delete(RedisKeys.onlineSession(jti));
-        stringRedisTemplate.opsForSet().remove(RedisKeys.ONLINE_INDEX, jti);
+        redisService.delete(RedisKeys.onlineSession(jti));
+        redisService.sRemove(RedisKeys.ONLINE_INDEX, jti);
         if (userId != null) {
-            stringRedisTemplate.opsForSet().remove(RedisKeys.onlineUser(userId), jti);
+            redisService.sRemove(RedisKeys.onlineUser(userId), jti);
         }
     }
 
@@ -210,16 +210,10 @@ public class OnlineSessionService {
         if (session != null && session.getExpireAt() != null) {
             return Math.max(session.getExpireAt() - Instant.now().toEpochMilli(), 0L);
         }
-        Long ttl = stringRedisTemplate.getExpire(RedisKeys.onlineSession(jti), TimeUnit.MILLISECONDS);
+        Long ttl = redisService.getExpire(RedisKeys.onlineSession(jti), TimeUnit.MILLISECONDS);
         return ttl == null || ttl < 0 ? 0L : ttl;
     }
 
-    /**
-     * 在线会话序列化为 JSON 字符串。
-     *
-     * @param session 在线会话
-     * @return JSON 文本
-     */
     private String toJson(OnlineSession session) {
         try {
             return objectMapper.writeValueAsString(session);
@@ -228,12 +222,6 @@ public class OnlineSessionService {
         }
     }
 
-    /**
-     * 从 JSON 反序列化在线会话；解析失败返回 null 并记录告警。
-     *
-     * @param json Redis 中存储的 JSON
-     * @return 在线会话，无效时为 null
-     */
     private OnlineSession fromJson(String json) {
         if (!StringUtils.hasText(json)) {
             return null;
@@ -246,13 +234,6 @@ public class OnlineSessionService {
         }
     }
 
-    /**
-     * 截断字符串至指定最大长度。
-     *
-     * @param value 原始字符串
-     * @param max   最大字符数
-     * @return 截断后的字符串；{@code value == null} 时返回 null
-     */
     private static String truncate(String value, int max) {
         if (value == null) {
             return null;

@@ -3,6 +3,7 @@ package com.omni.scaffolding.modules.ops.service;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.omni.scaffolding.common.persistence.DataSourceKeys;
+import com.omni.scaffolding.infra.redis.RedisService;
 import com.omni.scaffolding.modules.ops.dto.ServerRuntimeView;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
@@ -47,7 +48,7 @@ public class ServerInfoService {
 
     private final Environment environment;
     private final ObjectProvider<DataSource> dataSourceProvider;
-    private final ObjectProvider<StringRedisTemplate> stringRedisTemplateProvider;
+    private final ObjectProvider<RedisService> redisServiceProvider;
     private final ObjectProvider<BuildProperties> buildPropertiesProvider;
 
     /**
@@ -291,12 +292,13 @@ public class ServerInfoService {
      * @param info Redis 信息容器
      */
     private void fillRedis(ServerRuntimeView.RedisRuntimeInfo info) {
-        StringRedisTemplate template = stringRedisTemplateProvider.getIfAvailable();
-        if (template == null) {
+        RedisService redisService = redisServiceProvider.getIfAvailable();
+        if (redisService == null) {
             info.setAvailable(false);
-            info.setMessage("未装配 StringRedisTemplate（测试环境或未启用 Redis）");
+            info.setMessage("未装配 RedisService（测试环境或未启用 Redis）");
             return;
         }
+        StringRedisTemplate template = redisService.template();
         try {
             String pong = template.execute((RedisConnection connection) -> {
                 String reply = connection.ping();

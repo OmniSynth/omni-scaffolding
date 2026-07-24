@@ -20,9 +20,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
+import com.omni.scaffolding.infra.redis.RedisService;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -57,7 +57,7 @@ public class IpWhitelistService {
     private final SysIpWhitelistRepository whitelistRepository;
     private final SysIpWhitelistQueryMapper whitelistQueryMapper;
     private final OmniSecurityProperties securityProperties;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
     private final CacheManager cacheManager;
 
     /**
@@ -234,16 +234,10 @@ public class IpWhitelistService {
         String day = today();
         String ipKey = RedisKeys.ipWhitelistVisit(day, ip);
         String totalKey = RedisKeys.ipWhitelistVisitTotal(day);
-        Long count = stringRedisTemplate.opsForValue().increment(ipKey);
-        Long total = stringRedisTemplate.opsForValue().increment(totalKey);
         Duration ttl = ttlUntilDayAfterTomorrow();
-        if (count != null && count == 1L) {
-            stringRedisTemplate.expire(ipKey, ttl);
-        }
-        if (total != null && total == 1L) {
-            stringRedisTemplate.expire(totalKey, ttl);
-        }
-        return count == null ? 0L : count;
+        long count = redisService.incrementAndExpireOnCreate(ipKey, ttl);
+        redisService.incrementAndExpireOnCreate(totalKey, ttl);
+        return count;
     }
 
     /**
@@ -255,19 +249,19 @@ public class IpWhitelistService {
         String day = today();
         IpVisitTodayView view = new IpVisitTodayView();
         view.setDate(day);
-        view.setTotal(parseLong(stringRedisTemplate.opsForValue().get(RedisKeys.ipWhitelistVisitTotal(day))));
+        view.setTotal(parseLong(redisService.get(RedisKeys.ipWhitelistVisitTotal(day))));
 
         List<IpVisitItemView> items = new ArrayList<>();
         String dayPrefix = RedisKeys.ipWhitelistVisitDayPrefix(day);
         ScanOptions options = ScanOptions.scanOptions().match(RedisKeys.ipWhitelistVisitDayPattern(day)).count(200).build();
-        try (Cursor<String> cursor = stringRedisTemplate.scan(options)) {
+        try (Cursor<String> cursor = redisService.scan(options)) {
             while (cursor.hasNext()) {
                 String key = cursor.next();
                 String suffix = key.substring(dayPrefix.length());
                 if (RedisKeys.IP_WHITELIST_VISIT_TOTAL_SUFFIX.equals(suffix)) {
                     continue;
                 }
-                items.add(new IpVisitItemView(suffix, parseLong(stringRedisTemplate.opsForValue().get(key))));
+                items.add(new IpVisitItemView(suffix, parseLong(redisService.get(key))));
             }
         }
         items.sort(Comparator.comparingLong(IpVisitItemView::getCount).reversed());

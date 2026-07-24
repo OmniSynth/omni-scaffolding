@@ -3,6 +3,7 @@
  *
  * <ul>
  *   <li>{@code modules.system}：用户 / 角色 / 菜单 / 部门 / 字典 / 参数 / 日志 / 任务 / 文件 / 白名单</li>
+ *   <li>{@code modules.open}：开放 API 接口目录 / 客户端 Key / IP 白名单与限额</li>
  *   <li>{@code modules.ops}：服务器 / Redis / MySQL 运维</li>
  *   <li>{@code modules.tool.gen}：在线代码生成</li>
  * </ul>

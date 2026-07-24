@@ -50,7 +50,7 @@ Java 21 + Spring Boot 3.4 单体脚手架，面向高并发、高可用业务场
 omni-scaffolding/                 # 父 POM（packaging=pom）
 ├── omni-common                   # 统一响应、异常、审计基类、缓存/Redis Key、Excel、文件 SPI 等
 ├── omni-framework                # VT、Security/JWT、Redis、限流、锁、XSS、可选 Kafka/ES、JPA/MyBatis、存储实现
-├── omni-modules                  # 业务模块：system（权限域）/ ops（运维）/ tool.gen（代码生成）
+├── omni-modules                  # 业务模块：system / open（开放 API）/ ops / tool.gen
 ├── omni-demo                     # 双轨持久化 / Kafka / ES 演示（可从 omni-admin 去掉依赖）
 ├── omni-quartz                   # Quartz JDBC 集群定时任务
 ├── omni-admin                    # 启动入口 + application.yml + Flyway + fat jar
@@ -62,7 +62,7 @@ omni-scaffolding/                 # 父 POM（packaging=pom）
 依赖方向：`admin → modules/demo/quartz → framework → common`（禁止反向依赖）。  
 仍打一个可运行 jar，不是微服务。
 
-业务包根：`com.omni.scaffolding.modules.*`；系统域 DTO 按聚合分包（如 `dto.user` / `dto.role` / `dto.file`），勿再往 `dto` 根目录堆平铺类。
+业务包根：`com.omni.scaffolding.modules.*`；系统域 DTO 按聚合分包（如 `dto.user` / `dto.role` / `dto.file` / `dto.client`），勿再往 `dto` 根目录堆平铺类。
 
 ### 逻辑架构
 
@@ -93,7 +93,7 @@ flowchart TB
   end
 
   WEB -->|/api + JWT| SEC
-  API_CLIENT --> SEC
+  API_CLIENT -->|/api/open/** + X-Api-Key| SEC
   SEC --> CTRL --> SVC
   SVC --> JPA
   SVC --> MB
@@ -106,14 +106,14 @@ flowchart TB
   FILE --> STORE
   SVC -.->|开关开启| KAFKA
   SVC -.->|开关开启| ES
-  REDIS -->|会话 / 限流 / 锁 / 访问计数等| SVC
+  REDIS -->|经 RedisService：会话 / 限流 / 锁 / 计数等| SVC
 ```
 
 ### 请求链路
 
 1. Tomcat 虚拟线程接收请求  
-2. XSS 过滤 → JWT 认证 → 权限 / 数据范围  
-3. Resilience4j + Redis 限流（按配置）  
+2. XSS 过滤 → JWT 认证（管理端）或开放 API Key 过滤（`/api/open/**`）→ 权限 / 数据范围  
+3. Resilience4j + Redis 限流（按配置；开放 API 走独立 QPS / 日限额）  
 4. Controller → Service  
 5. **写**：JPA（审计、`@Version` 乐观锁）→ 主库  
 6. **复杂读**：MyBatis XML → 从库（无从库时回落主库）  
@@ -163,6 +163,7 @@ flowchart TB
 - **登录加签**：可选 HMAC（nonce 防重放 + IP 限流）  
 - **IP 白名单**：`@IpWhitelist` + 表 `sys_ip_whitelist`（yaml 兜底）  
 - **在线用户**：Redis 会话索引，支持踢下线  
+- **开放 API**：`X-Api-Key` 鉴权、接口目录绑定、IP 白名单、QPS / 日限额（`modules.open`）  
 - **前端水印**：系统参数 `sys.ui.watermark`（`true` / `false`）  
 
 系统管理 RBAC（Flyway **V1** 初始化）：部门树、菜单/按钮权限、角色数据范围；用户列表按角色数据范围隔离。
@@ -172,6 +173,7 @@ flowchart TB
 | 域 | 能力 |
 |----|------|
 | 系统管理 | 用户、角色、部门、岗位、菜单、字典、系统参数、通知公告、**统一文件管理** |
+| 开放 API | 接口目录、客户端 Key 签发/重置、IP 白名单、接口绑定、当日用量 |
 | 审计 | 登录日志、操作日志 |
 | 调度 | `sys_job` 管理 + Quartz JDBC 集群；Bean 调用、Cron、执行日志 |
 | 安全 | IP 白名单、今日访问统计、缓存刷新 |
@@ -187,6 +189,7 @@ flowchart TB
 | `V1__init_schema.sql` | 系统表、RBAC、演示表、`sys_job`、**Quartz `QRTZ_*`**、种子数据 |
 | `V2__sys_file.sql` | `sys_file`、用户头像改文件 ID、文件管理菜单 |
 | `V3__user_password_policy.sql` | 用户强制改密 / 改密时间字段 |
+| `V4__open_api.sql` | 开放 API 接口目录 / 客户端 / IP 与接口绑定、菜单权限、演示 `GET /api/open/demo/ping` |
 
 - 生产路径：`omni-admin/src/main/resources/db/migration/`  
 - 测试 H2：`omni-admin/src/test/resources/db/migration-h2/`（语义同步）  
@@ -218,7 +221,7 @@ flowchart TB
 | 中间件 | 版本（Compose） | 是否必需 | 用途 |
 |--------|-----------------|----------|------|
 | MySQL | 8.4 | **必需** | 业务库、Flyway、Quartz `QRTZ_*` |
-| Redis | 7 Alpine | **必需** | Cache、会话、限流、锁、白名单访问计数 |
+| Redis | 7 Alpine | **必需** | Cache、会话、限流、锁、白名单/开放 API 计数 |
 | Kafka | Bitnami 3.9 | 可选（profile） | 演示事件总线 |
 | Elasticsearch | 8.17.0 | 可选（profile） | 演示商品检索 |
 
@@ -239,15 +242,21 @@ flowchart TB
 
 ### Redis
 
+业务与基础设施 **统一通过 `RedisService`**（`omni-framework` / `infra.redis`）访问 Redis，不要在业务代码里直接注入 `StringRedisTemplate`。  
+提供 get/set、NX、删除、TTL、自增/自减、`incrementAndExpireOnCreate`、Set/Hash、Lua、SCAN；运维控制台等复杂场景可用 `redisService.template()` 逃生。
+
 | 场景 | 说明 |
 |------|------|
 | Spring Cache | `sysConfig`、`ipWhitelist`、`users`、`userPermissions`、`dictOptions` 等，默认 TTL 10 分钟 |
 | 在线会话 | `omni:online:*` |
-| 登录防重放 / IP 限流 | `login:nonce:*`、`login:ip:*` |
-| 分布式锁 | 如 `lock:product:sku:*` |
+| 登录防重放 / 失败锁定 / 验证码 | `login:nonce:*`、`login:fail:*`、`login:captcha:*` 等 |
+| 入口 / 业务限流 | `rl:*`（`RedisRateLimiter` 固定窗口；超限回滚计数） |
+| 分布式锁 | 如 `lock:product:sku:*`（`DistributedLockService`） |
 | IP 白名单访问计数 | `omni:ipwl:{yyyyMMdd}:{ip}` |
+| 开放 API 限额 | 业务 Key 见 `RedisKeys.openApiQps` / `openApiDay`（限流器再加 `rl:` 前缀） |
 
-Key / 缓存名常量：`RedisKeys`、`CacheNames`、`ConfigKeys`（`com.omni.scaffolding.common.cache`）。
+Key / 缓存名常量：`RedisKeys`、`CacheNames`、`ConfigKeys`（`com.omni.scaffolding.common.cache`）。  
+对照实现：`RedisService`、`RedisRateLimiter`、`OnlineSessionService`、`CaptchaService`。
 
 ### Kafka（可选）
 
@@ -511,7 +520,7 @@ spring:
 
 ## 前端（omni-web）
 
-管理端：Vue 3 + Vite + TypeScript + Element Plus。覆盖登录、动态菜单、按钮级权限（`v-permission`）、**首页工作台**（快捷入口 + 未读公告 + 可选运行态），以及用户/角色/部门/菜单/岗位/字典/参数/公告/文件/定时任务/IP 白名单、运维页、代码生成等。
+管理端：Vue 3 + Vite + TypeScript + Element Plus。覆盖登录、动态菜单、按钮级权限（`v-permission`）、**首页工作台**（快捷入口 + 未读公告 + 可选运行态），以及用户/角色/部门/菜单/岗位/字典/参数/公告/文件/定时任务/IP 白名单、**开放 API（接口目录 / 客户端）**、运维页、代码生成等。
 
 演示账号（密码均为 `admin123`）：
 
@@ -533,8 +542,9 @@ spring:
 | AI 开发规范 | [AGENTS.md](./AGENTS.md)、[`.cursor/rules/`](./.cursor/rules/) |
 | 公共配置 | `omni-admin/src/main/resources/application.yml` |
 | 开发 / 生产 | `application-dev.yml` / `application-prod.yml` |
-| Flyway | `omni-admin/src/main/resources/db/migration`（V1 初始化，V2 文件） |
+| Flyway | `omni-admin/src/main/resources/db/migration`（V1–V4；勿改已发布脚本） |
 | 缓存名 | `CacheNames` |
+| Redis 访问 | `RedisService`（禁止业务直接 `StringRedisTemplate`） |
 | Redis Key | `RedisKeys` |
 | 系统参数键 | `ConfigKeys`（如 `sys.ui.watermark`） |
 | 权限码 | `模块:资源:动作`，菜单表 `sys_menu.perms` |
@@ -552,6 +562,9 @@ spring:
 | POST | `/api/system/files` | 上传文件 |
 | GET | `/api/system/files/{id}/content` | 文件内容（JWT 或签名） |
 | GET | `/api/system/files/{id}/preview-url` | 短时预览 URL |
+| GET | `/api/open/admin/endpoints` | 开放 API 接口目录（JWT） |
+| GET | `/api/open/admin/clients` | 开放 API 客户端管理（JWT） |
+| GET | `/api/open/demo/ping` | 开放 API 演示（`X-Api-Key`） |
 | POST | `/api/demo/products` | JPA 创建商品 |
 | GET | `/api/demo/products` | MyBatis 动态查询 |
 | GET | `/api/demo/products/stats/by-category` | MyBatis 聚合 |

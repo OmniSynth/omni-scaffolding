@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.open.mapper.OpenApiClientQueryMapper">
+
+    <sql id="SearchWhere">
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (name LIKE CONCAT('%', #{keyword}, '%')
+                OR access_key LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <select id="countClients" resultType="long">
+        SELECT COUNT(1)
+        FROM open_api_client
+        <include refid="SearchWhere"/>
+    </select>
+
+    <select id="listClients" resultType="com.omni.scaffolding.modules.open.dto.client.OpenClientView">
+        SELECT id, name, access_key AS accessKey, daily_limit AS dailyLimit, qps_limit AS qpsLimit,
+               expire_at AS expireAt, remark, status
+        FROM open_api_client
+        <include refid="SearchWhere"/>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.open.dto.client.OpenClientView">
+        SELECT id, name, access_key AS accessKey, daily_limit AS dailyLimit, qps_limit AS qpsLimit,
+               expire_at AS expireAt, remark, status
+        FROM open_api_client
+        WHERE id = #{id}
+          AND deleted = 0
+    </select>
+
+    <select id="listIpsByClientId" resultType="string">
+        SELECT ip_addr
+        FROM open_api_client_ip
+        WHERE client_id = #{clientId}
+        ORDER BY ip_addr
+    </select>
+
+    <select id="listEndpointIdsByClientId" resultType="long">
+        SELECT endpoint_id
+        FROM open_api_client_endpoint
+        WHERE client_id = #{clientId}
+    </select>
+
+    <delete id="deleteIps">
+        DELETE FROM open_api_client_ip WHERE client_id = #{clientId}
+    </delete>
+
+    <insert id="insertIp">
+        INSERT INTO open_api_client_ip (client_id, ip_addr) VALUES (#{clientId}, #{ipAddr})
+    </insert>
+
+    <delete id="deleteEndpoints">
+        DELETE FROM open_api_client_endpoint WHERE client_id = #{clientId}
+    </delete>
+
+    <insert id="insertEndpoint">
+        INSERT INTO open_api_client_endpoint (client_id, endpoint_id) VALUES (#{clientId}, #{endpointId})
+    </insert>
+
+    <select id="countBindingsByEndpointId" resultType="long">
+        SELECT COUNT(1) FROM open_api_client_endpoint WHERE endpoint_id = #{endpointId}
+    </select>
+</mapper>

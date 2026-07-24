@@ -296,6 +296,8 @@ omni:
       - /api/system/files/*/content
       # 登录验证码
       - /api/auth/captcha
+      # 开放 API（管理端 /api/open/admin/** 仍需 JWT，见 SecurityConfig）
+      - /api/open/**
     # ---------- 登录验证码 ----------
     captcha:
       enabled: ${OMNI_SECURITY_CAPTCHA_ENABLED:true}

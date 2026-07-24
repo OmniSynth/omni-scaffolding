@@ -9,7 +9,7 @@
 
 ## 0. 一句话心智模型
 
-单体多模块 Spring Boot：**写用 JPA（主库）· 复杂读用 MyBatis（从库）· Schema 只走 Flyway · API 统一 `ApiResponse` · 权限码进菜单表 · 前端 Vue3 跟后端权限同名。**
+单体多模块 Spring Boot：**写用 JPA（主库）· 复杂读用 MyBatis（从库）· Schema 只走 Flyway · Redis 统一 `RedisService` · API 统一 `ApiResponse` · 权限码进菜单表 · 前端 Vue3 跟后端权限同名。**
 
 禁止把本仓库当成微服务拆分；禁止引入与现有栈冲突的新持久化/安全框架。
 
@@ -35,9 +35,9 @@ omni-admin → omni-modules / omni-demo / omni-quartz → omni-framework → omn
 
 | 放哪里 | 放什么 |
 |--------|--------|
-| `omni-common` | `ApiResponse`、`ErrorCode`、`BusinessException`、`BaseAuditableEntity`、`IdGenerator`、缓存 Key、文件 SPI、通知 SPI、纯工具 |
-| `omni-framework` | Security/JWT、限流、锁、Druid/读写切面、Local/MinIO/OSS 实现、全局异常、Jackson 扩展 |
-| `omni-modules` | 具体业务 Controller/Service/Entity/Mapper/DTO |
+| `omni-common` | `ApiResponse`、`ErrorCode`、`BusinessException`、`BaseAuditableEntity`、`IdGenerator`、缓存/`RedisKeys`、文件 SPI、通知 SPI、纯工具 |
+| `omni-framework` | Security/JWT、**`RedisService`**、限流、锁、Druid/读写切面、Local/MinIO/OSS 实现、全局异常、Jackson 扩展、开放 API 过滤器 |
+| `omni-modules` | 具体业务 Controller/Service/Entity/Mapper/DTO（含 `modules.open`） |
 | `omni-admin` | 仅启动类、配置、`db/migration`、测试 profile |
 
 包名：`com.omni.scaffolding...`。业务包在 `com.omni.scaffolding.modules.<域>.*`。
@@ -74,7 +74,7 @@ modules/<域>/
 resources/mapper/<域>/SysXxxQueryMapper.xml
 ```
 
-DTO **按聚合分子包**（已有：`dto.user` / `dto.role` / `dto.post` / `dto.auth`…），不要再往 `dto` 根目录堆文件。
+DTO **按聚合分子包**（已有：`dto.user` / `dto.role` / `dto.post` / `dto.auth` / `open.dto.client`…），不要再往 `dto` 根目录堆文件。
 
 ### C. 前端（`omni-web`）
 
@@ -167,7 +167,8 @@ public class PostController {
   常用：`BAD_REQUEST` / `UNAUTHORIZED` / `FORBIDDEN` / `NOT_FOUND` / `CONFLICT` / `INTERNAL_ERROR`
 - 主键：`IdGenerator.nextId()`，创建时 `entity.setId(...)` 再 `saveAndFlush`
 - 逻辑删除：改 `deleted=1`，查询条件带 `deleted = 0`
-- 缓存：改数据后 `@CacheEvict`；Key 常量放 `omni-common` 的 `CacheNames` / `CacheKeys`
+- 缓存：改数据后 `@CacheEvict`；Key 常量放 `omni-common` 的 `CacheNames` / `CacheKeys` / `RedisKeys`
+- **Redis**：业务与基础设施注入 `RedisService`（`infra.redis`），禁止直接使用 `StringRedisTemplate`（运维/逃生口用 `redisService.template()`）
 - 敏感字段：View 上用 `@Desensitize`；详情编辑接口可用 `@WithoutDesensitize`
 
 ---
@@ -247,6 +248,7 @@ boolean existsByCodeAndDeleted(String code, Integer deleted);
 | 改旧 Flyway 脚本 | 只新增 `V{n+1}__...sql`，并同步 H2 |
 | DTO 平铺在 `dto` 根包 | 按聚合分子包 |
 | framework 依赖 modules | 禁止；SPI 放 common，实现放 framework |
+| 业务直接 `StringRedisTemplate` | 注入 `RedisService`；复杂运维才用 `template()` |
 | 新模块放错 Maven | 业务进 `omni-modules`，不要新建微服务模块除非用户明确要求 |
 | 前端 path 与菜单 component 不一致 | 与 Flyway `component` 字段对齐 |
 | 为 VT 把连接池开到很大 | 按 DB `max_connections` 与实例数核算 |
@@ -281,6 +283,8 @@ boolean existsByCodeAndDeleted(String code, Integer deleted);
 | 简单 CRUD | `modules/system/**/Post*` + `omni-web/.../post/` |
 | 树形 | `Dept*` / `Menu*` |
 | 主表 + 关联表 | `UserService`（角色/岗位）+ `RoleService`（菜单） |
+| 开放 API | `modules/open/**` + `OpenApiAuthFilter` + `omni-web/views/open/` |
+| Redis 读写 | `RedisService`；限流 `RedisRateLimiter`；锁 `DistributedLockService` |
 | 字典/参数缓存 | `DictService` / `ConfigService`；前端 `useDict` + `DictTag` |
 | 通知通道 SPI | `common.notify.NotifyChannel` + `infra.notify.NotifyDispatcher`（公告发布接入） |
 | 文件上传 | `FileService` + `FileUpload.vue` / `FileImage.vue` |

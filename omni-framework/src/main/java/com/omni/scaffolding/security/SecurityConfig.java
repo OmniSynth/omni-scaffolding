@@ -5,6 +5,7 @@ import com.omni.scaffolding.common.api.ApiResponse;
 import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.trace.TraceContext;
 import com.omni.scaffolding.config.OmniSecurityProperties;
+import com.omni.scaffolding.security.open.OpenApiAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +41,7 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OpenApiAuthFilter openApiAuthFilter;
     private final OmniSecurityProperties securityProperties;
     private final ObjectMapper objectMapper;
 
@@ -77,6 +79,8 @@ public class SecurityConfig {
                                         + "frame-ancestors 'self'; "
                                         + "frame-src 'self'")))
                 .authorizeHttpRequests(auth -> {
+                    // 管理端仍走 JWT；其余 /api/open/** 匿名放行后由 OpenApiAuthFilter 鉴权
+                    auth.requestMatchers("/api/open/admin/**").authenticated();
                     securityProperties.getPermitAll().forEach(path ->
                             auth.requestMatchers(path).permitAll());
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
@@ -95,7 +99,8 @@ public class SecurityConfig {
                             objectMapper.writeValue(response.getOutputStream(),
                                     ApiResponse.fail(ErrorCode.FORBIDDEN).withTraceId(TraceContext.getTraceId()));
                         }))
-                // JWT 过滤器放在用户名密码过滤器之前，完成鉴权上下文填充
+                // 开放 API Key 过滤器在 JWT 之前；管理端路径由其 shouldNotFilter 跳过
+                .addFilterBefore(openApiAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

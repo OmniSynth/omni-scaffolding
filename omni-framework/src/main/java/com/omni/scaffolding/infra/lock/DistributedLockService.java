@@ -2,14 +2,13 @@ package com.omni.scaffolding.infra.lock;
 
 import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.exception.BusinessException;
+import com.omni.scaffolding.infra.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -40,7 +39,7 @@ public class DistributedLockService {
             end
             """, Long.class);
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
 
     /**
      * 在锁保护下执行业务逻辑。
@@ -59,9 +58,7 @@ public class DistributedLockService {
         boolean acquired = false;
         try {
             while (System.nanoTime() < deadline) {
-                Boolean ok = stringRedisTemplate.opsForValue()
-                        .setIfAbsent(key, token, Duration.ofSeconds(unit.toSeconds(leaseSeconds)));
-                if (Boolean.TRUE.equals(ok)) {
+                if (redisService.setIfAbsent(key, token, Duration.ofSeconds(unit.toSeconds(leaseSeconds)))) {
                     acquired = true;
                     break;
                 }
@@ -92,7 +89,7 @@ public class DistributedLockService {
      */
     private void unlock(String key, String token) {
         try {
-            stringRedisTemplate.execute(UNLOCK_SCRIPT, Collections.singletonList(key), token);
+            redisService.execute(UNLOCK_SCRIPT, key, token);
         } catch (Exception ex) {
             // 解锁失败最多等到 TTL 自动过期，这里只告警
             log.warn("Failed to release lock {}: {}", key, ex.getMessage());

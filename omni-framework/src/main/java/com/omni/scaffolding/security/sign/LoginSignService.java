@@ -6,8 +6,8 @@ import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.common.util.SignUtils;
 import com.omni.scaffolding.config.OmniSecurityProperties;
 import com.omni.scaffolding.infra.ratelimit.RedisRateLimiter;
+import com.omni.scaffolding.infra.redis.RedisService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -21,7 +21,7 @@ import java.time.Duration;
 public class LoginSignService {
 
     private final OmniSecurityProperties securityProperties;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
     private final RedisRateLimiter redisRateLimiter;
 
     /**
@@ -72,11 +72,11 @@ public class LoginSignService {
         if (nonceVal.length() < 8 || nonceVal.length() > 64) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "登录随机串无效");
         }
-        Boolean firstSeen = stringRedisTemplate.opsForValue().setIfAbsent(
+        boolean firstSeen = redisService.setIfAbsent(
                 RedisKeys.loginNonce(nonceVal),
                 "1",
                 Duration.ofMillis(skewMs * 2));
-        if (!Boolean.TRUE.equals(firstSeen)) {
+        if (!firstSeen) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "登录随机串已被使用");
         }
 

@@ -141,6 +141,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/tool/gen/index.vue'),
         meta: { title: '代码生成', permission: 'tool:gen:list' },
       },
+      {
+        path: 'open/endpoint',
+        name: 'OpenEndpoint',
+        component: () => import('@/views/open/endpoint/index.vue'),
+        meta: { title: '接口目录', permission: 'open:endpoint:list' },
+      },
+      {
+        path: 'open/client',
+        name: 'OpenClient',
+        component: () => import('@/views/open/client/index.vue'),
+        meta: { title: '客户端管理', permission: 'open:client:list' },
+      },
     ],
   },
 ]

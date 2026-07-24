@@ -9,6 +9,7 @@ import com.omni.scaffolding.modules.ops.dto.RedisInfoView;
 import com.omni.scaffolding.modules.ops.dto.RedisKeyDetailView;
 import com.omni.scaffolding.modules.ops.dto.RedisKeyView;
 import com.omni.scaffolding.modules.ops.dto.RedisSetStringRequest;
+import com.omni.scaffolding.infra.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.DataType;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Redis 运维：概览、SCAN 浏览、读写 String、TTL、删除。
@@ -43,7 +43,7 @@ public class RedisOpsService {
     private static final int MAX_VALUE_CHARS = 4_000;
     private static final int MAX_COLLECTION_ITEMS = 100;
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -52,8 +52,9 @@ public class RedisOpsService {
      * @return 版本、内存、连接数等
      */
     public RedisInfoView info() {
-        Properties props = stringRedisTemplate.execute((RedisConnection connection) -> connection.serverCommands().info());
-        Long dbSize = stringRedisTemplate.execute(RedisConnection::dbSize);
+        StringRedisTemplate template = redisService.template();
+        Properties props = template.execute((RedisConnection connection) -> connection.serverCommands().info());
+        Long dbSize = template.execute(RedisConnection::dbSize);
         RedisInfoView view = new RedisInfoView();
         view.setRedisVersion(prop(props, "redis_version"));
         view.setMode(prop(props, "redis_mode"));
@@ -92,7 +93,7 @@ public class RedisOpsService {
         String pat = StringUtils.hasText(pattern) ? pattern.trim() : "*";
         List<RedisKeyView> rows = new ArrayList<>();
         ScanOptions options = ScanOptions.scanOptions().match(pat).count(Math.min(max, 50)).build();
-        try (Cursor<String> cursor = stringRedisTemplate.scan(options)) {
+        try (Cursor<String> cursor = redisService.scan(options)) {
             while (cursor.hasNext() && rows.size() < max) {
                 rows.add(toKeyView(cursor.next()));
             }
@@ -108,14 +109,15 @@ public class RedisOpsService {
      */
     public RedisKeyDetailView detail(String key) {
         String k = requireKey(key);
-        DataType type = stringRedisTemplate.type(k);
+        StringRedisTemplate template = redisService.template();
+        DataType type = template.type(k);
         if (type == null || type == DataType.NONE) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Key 不存在");
         }
         RedisKeyDetailView view = new RedisKeyDetailView();
         view.setKey(k);
         view.setType(type.code());
-        view.setTtlSeconds(stringRedisTemplate.getExpire(k, TimeUnit.SECONDS));
+        view.setTtlSeconds(redisService.getExpireSeconds(k));
         fillValue(view, k, type);
         return view;
     }
@@ -131,9 +133,9 @@ public class RedisOpsService {
         String value = request.getValue();
         Long ttl = request.getTtlSeconds();
         if (ttl != null && ttl > 0) {
-            stringRedisTemplate.opsForValue().set(key, value, ttl, TimeUnit.SECONDS);
+            redisService.set(key, value, ttl);
         } else {
-            stringRedisTemplate.opsForValue().set(key, value);
+            redisService.set(key, value);
         }
         return detail(key);
     }
@@ -146,17 +148,14 @@ public class RedisOpsService {
      */
     public RedisKeyView expire(RedisExpireRequest request) {
         String key = requireKey(request.getKey());
-        if (!Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
+        if (!redisService.hasKey(key)) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Key 不存在");
         }
         Long ttl = request.getTtlSeconds();
         if (ttl == null || ttl <= 0) {
-            stringRedisTemplate.persist(key);
-        } else {
-            Boolean ok = stringRedisTemplate.expire(key, ttl, TimeUnit.SECONDS);
-            if (!Boolean.TRUE.equals(ok)) {
-                throw new BusinessException(ErrorCode.BAD_REQUEST, "设置过期时间失败");
-            }
+            redisService.persist(key);
+        } else if (!redisService.expire(key, ttl)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "设置过期时间失败");
         }
         return toKeyView(key);
     }
@@ -180,8 +179,7 @@ public class RedisOpsService {
         if (normalized.isEmpty()) {
             return 0L;
         }
-        Long deleted = stringRedisTemplate.delete(normalized);
-        return deleted == null ? 0L : deleted;
+        return redisService.delete(normalized);
     }
 
     /**
@@ -192,15 +190,16 @@ public class RedisOpsService {
      * @param type 数据类型
      */
     private void fillValue(RedisKeyDetailView view, String key, DataType type) {
+        StringRedisTemplate template = redisService.template();
         switch (type) {
             case STRING -> {
-                String value = stringRedisTemplate.opsForValue().get(key);
+                String value = redisService.get(key);
                 view.setSize(value == null ? 0L : (long) value.length());
                 view.setValue(truncate(value));
                 view.setTruncated(value != null && value.length() > MAX_VALUE_CHARS);
             }
             case HASH -> {
-                Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(key);
+                Map<Object, Object> entries = redisService.hGetAll(key);
                 view.setSize((long) entries.size());
                 Map<String, String> limited = new LinkedHashMap<>();
                 int i = 0;
@@ -214,36 +213,34 @@ public class RedisOpsService {
                 view.setValue(toJson(limited));
             }
             case LIST -> {
-                Long size = stringRedisTemplate.opsForList().size(key);
+                Long size = template.opsForList().size(key);
                 view.setSize(size == null ? 0L : size);
-                List<String> range = stringRedisTemplate.opsForList().range(key, 0, MAX_COLLECTION_ITEMS - 1L);
+                List<String> range = template.opsForList().range(key, 0, MAX_COLLECTION_ITEMS - 1L);
                 view.setTruncated(size != null && size > MAX_COLLECTION_ITEMS);
                 view.setValue(toJson(range == null ? List.of() : range.stream()
                         .map(v -> truncatePlain(v, 500))
                         .toList()));
             }
             case SET -> {
-                Long size = stringRedisTemplate.opsForSet().size(key);
-                view.setSize(size == null ? 0L : size);
-                Set<String> members = stringRedisTemplate.opsForSet().members(key);
+                long size = redisService.sCard(key);
+                view.setSize(size);
+                Set<String> members = redisService.sMembers(key);
                 List<String> limited = new ArrayList<>();
-                if (members != null) {
-                    int i = 0;
-                    for (String m : members) {
-                        if (i++ >= MAX_COLLECTION_ITEMS) {
-                            break;
-                        }
-                        limited.add(truncatePlain(m, 500));
+                int i = 0;
+                for (String m : members) {
+                    if (i++ >= MAX_COLLECTION_ITEMS) {
+                        break;
                     }
-                    view.setTruncated(members.size() > MAX_COLLECTION_ITEMS);
+                    limited.add(truncatePlain(m, 500));
                 }
+                view.setTruncated(members.size() > MAX_COLLECTION_ITEMS);
                 view.setValue(toJson(limited));
             }
             case ZSET -> {
-                Long size = stringRedisTemplate.opsForZSet().zCard(key);
+                Long size = template.opsForZSet().zCard(key);
                 view.setSize(size == null ? 0L : size);
                 Set<ZSetOperations.TypedTuple<String>> tuples =
-                        stringRedisTemplate.opsForZSet().rangeWithScores(key, 0, MAX_COLLECTION_ITEMS - 1L);
+                        template.opsForZSet().rangeWithScores(key, 0, MAX_COLLECTION_ITEMS - 1L);
                 List<Map<String, Object>> limited = new ArrayList<>();
                 if (tuples != null) {
                     for (ZSetOperations.TypedTuple<String> t : tuples) {
@@ -273,10 +270,9 @@ public class RedisOpsService {
     private RedisKeyView toKeyView(String key) {
         RedisKeyView view = new RedisKeyView();
         view.setKey(key);
-        DataType type = stringRedisTemplate.type(key);
+        DataType type = redisService.template().type(key);
         view.setType(type == null ? "none" : type.code());
-        Long ttl = stringRedisTemplate.getExpire(key, TimeUnit.SECONDS);
-        view.setTtlSeconds(ttl);
+        view.setTtlSeconds(redisService.getExpireSeconds(key));
         return view;
     }
 

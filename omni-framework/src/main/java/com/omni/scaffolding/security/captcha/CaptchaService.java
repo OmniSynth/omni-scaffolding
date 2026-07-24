@@ -4,8 +4,8 @@ import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.cache.RedisKeys;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.config.OmniSecurityProperties;
+import com.omni.scaffolding.infra.redis.RedisService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -34,7 +34,7 @@ public class CaptchaService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final OmniSecurityProperties securityProperties;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
 
     /**
      * 是否启用验证码。
@@ -56,7 +56,7 @@ public class CaptchaService {
         String code = randomCode(len);
         String captchaId = UUID.randomUUID().toString().replace("-", "");
         int ttl = Math.max(30, cfg.getTtlSeconds());
-        stringRedisTemplate.opsForValue().set(
+        redisService.set(
                 RedisKeys.loginCaptcha(captchaId),
                 code.toLowerCase(Locale.ROOT),
                 Duration.ofSeconds(ttl));
@@ -78,8 +78,8 @@ public class CaptchaService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "请输入验证码");
         }
         String key = RedisKeys.loginCaptcha(captchaId.trim());
-        String expected = stringRedisTemplate.opsForValue().get(key);
-        stringRedisTemplate.delete(key);
+        String expected = redisService.get(key);
+        redisService.delete(key);
         if (!StringUtils.hasText(expected)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "验证码已过期，请刷新");
         }

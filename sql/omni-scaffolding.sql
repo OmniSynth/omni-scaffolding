@@ -11,7 +11,7 @@
  Target Server Version : 80027 (8.0.27)
  File Encoding         : 65001
 
- Date: 24/07/2026 09:00:01
+ Date: 24/07/2026 14:20:07
 */
 
 SET NAMES utf8mb4;
@@ -72,6 +72,91 @@ CREATE TABLE `flyway_schema_history`  (
 INSERT INTO `flyway_schema_history` VALUES (1, '1', 'init schema', 'SQL', 'V1__init_schema.sql', 1656416959, 'root', '2026-07-23 09:05:09', 2002, 1);
 INSERT INTO `flyway_schema_history` VALUES (2, '2', 'sys file', 'SQL', 'V2__sys_file.sql', 313294148, 'root', '2026-07-23 11:41:16', 154, 1);
 INSERT INTO `flyway_schema_history` VALUES (3, '3', 'user password policy', 'SQL', 'V3__user_password_policy.sql', -484160314, 'root', '2026-07-23 15:29:26', 453, 1);
+
+-- ----------------------------
+-- Table structure for open_api_client
+-- ----------------------------
+DROP TABLE IF EXISTS `open_api_client`;
+CREATE TABLE `open_api_client`  (
+  `id` bigint NOT NULL COMMENT '主键',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '客户端名称',
+  `api_key_hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'API Key SHA-256',
+  `access_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公开 AccessKey（二期签名用）',
+  `secret_hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Secret SHA-256（二期签名用）',
+  `daily_limit` int NULL DEFAULT NULL COMMENT '日调用上限，NULL/0 不限',
+  `qps_limit` int NULL DEFAULT NULL COMMENT '每秒上限，NULL/0 不限',
+  `expire_at` datetime(3) NULL DEFAULT NULL COMMENT '过期时间，空表示不过期',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+  `deleted` int NOT NULL DEFAULT 0,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `version` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_open_api_client_key_hash`(`api_key_hash` ASC) USING BTREE,
+  UNIQUE INDEX `uk_open_api_client_access_key`(`access_key` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '开放 API 客户端' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of open_api_client
+-- ----------------------------
+INSERT INTO `open_api_client` VALUES (595458373448572, '测试', 'eaf9c03539e2cf249c7d6f283d6f12ccf3026239f59bd90afa946da9930bc4e3', 'ak_ef5afaf843ca4469', 'c6e945be7451050ec2a2876e7982f3ab5230a3ac7286cdf45bbfb019cd094161', 10, 5, NULL, NULL, 1, 0, '2026-07-24 05:37:41.725', '2026-07-24 06:04:54.917', 2);
+
+-- ----------------------------
+-- Table structure for open_api_client_endpoint
+-- ----------------------------
+DROP TABLE IF EXISTS `open_api_client_endpoint`;
+CREATE TABLE `open_api_client_endpoint`  (
+  `client_id` bigint NOT NULL COMMENT '客户端 ID',
+  `endpoint_id` bigint NOT NULL COMMENT '接口目录 ID',
+  PRIMARY KEY (`client_id`, `endpoint_id`) USING BTREE,
+  INDEX `idx_open_api_client_ep_client`(`client_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '客户端可访问接口' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of open_api_client_endpoint
+-- ----------------------------
+INSERT INTO `open_api_client_endpoint` VALUES (595458373448572, 1);
+
+-- ----------------------------
+-- Table structure for open_api_client_ip
+-- ----------------------------
+DROP TABLE IF EXISTS `open_api_client_ip`;
+CREATE TABLE `open_api_client_ip`  (
+  `client_id` bigint NOT NULL COMMENT '客户端 ID',
+  `ip_addr` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '允许的 IP',
+  PRIMARY KEY (`client_id`, `ip_addr`) USING BTREE,
+  INDEX `idx_open_api_client_ip_client`(`client_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '客户端 IP 白名单' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of open_api_client_ip
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for open_api_endpoint
+-- ----------------------------
+DROP TABLE IF EXISTS `open_api_endpoint`;
+CREATE TABLE `open_api_endpoint`  (
+  `id` bigint NOT NULL COMMENT '主键',
+  `code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '接口编码',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '接口名称',
+  `http_method` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'HTTP 方法，如 GET/POST/*',
+  `path_pattern` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Ant 路径，如 /api/open/demo/**',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+  `deleted` int NOT NULL DEFAULT 0,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `version` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_open_api_endpoint_code`(`code` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '开放接口目录' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of open_api_endpoint
+-- ----------------------------
+INSERT INTO `open_api_endpoint` VALUES (1, 'open.demo.ping', '开放演示 Ping', 'GET', '/api/open/demo/ping', '脚手架演示接口', 1, 0, '2026-07-24 13:33:18.463', '2026-07-24 06:17:18.246', 2);
 
 -- ----------------------------
 -- Table structure for qrtz_blob_triggers
@@ -227,7 +312,7 @@ CREATE TABLE `qrtz_scheduler_state`  (
 -- ----------------------------
 -- Records of qrtz_scheduler_state
 -- ----------------------------
-INSERT INTO `qrtz_scheduler_state` VALUES ('omni-cluster', 'DESKTOP-N2OD8271784851650238', 1784854800509, 10000);
+INSERT INTO `qrtz_scheduler_state` VALUES ('omni-cluster', 'DESKTOP-N2OD8271784873796651', 1784874004319, 10000);
 
 -- ----------------------------
 -- Table structure for qrtz_simple_triggers
@@ -586,6 +671,7 @@ INSERT INTO `sys_login_log` VALUES (1310026957542900, 1, 'admin', '127.0.0.1', '
 INSERT INTO `sys_login_log` VALUES (1314644188122388, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', '344e27041ceb43d5beb15f6b5d49fa14', '2026-07-23 05:48:13.085');
 INSERT INTO `sys_login_log` VALUES (4223018688810666, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', '3934f5edf13c415ea45d35dc3dc8594b', '2026-07-23 07:38:58.605');
 INSERT INTO `sys_login_log` VALUES (4366271268674718, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', 'b76faa303c8f4539b8bff79822ed0f6a', '2026-07-23 04:57:52.304');
+INSERT INTO `sys_login_log` VALUES (4707551005179593, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', '1125fedfbe5c45f7ad988cdb7509e5aa', '2026-07-24 03:02:02.459');
 INSERT INTO `sys_login_log` VALUES (5445604984271740, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', '8b6dfb616b4c4dad90421a7c39d2b560', '2026-07-23 05:52:11.822');
 INSERT INTO `sys_login_log` VALUES (6646036533756785, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', '58333c1e0b954892822763d76bea28fd', '2026-07-23 07:30:14.151');
 INSERT INTO `sys_login_log` VALUES (6689299597474104, 1, 'admin', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', 'SUCCESS', '登录成功', '95d1454b6616475f933b611a2294a99e', '2026-07-23 09:18:00.350');
@@ -717,6 +803,18 @@ INSERT INTO `sys_menu` VALUES (410, 400, 'MENU', '代码生成', 'gen', 'tool/ge
 INSERT INTO `sys_menu` VALUES (411, 410, 'BUTTON', '生成查询', NULL, NULL, NULL, 'tool:gen:query', 1, 1, 1, 0, '2026-07-23 09:05:09.555', '2026-07-23 09:05:09.555', 0);
 INSERT INTO `sys_menu` VALUES (412, 410, 'BUTTON', '生成预览', NULL, NULL, NULL, 'tool:gen:preview', 2, 1, 1, 0, '2026-07-23 09:05:09.555', '2026-07-23 09:05:09.555', 0);
 INSERT INTO `sys_menu` VALUES (413, 410, 'BUTTON', '生成代码', NULL, NULL, NULL, 'tool:gen:code', 3, 1, 1, 0, '2026-07-23 09:05:09.555', '2026-07-23 09:05:09.555', 0);
+INSERT INTO `sys_menu` VALUES (500, 0, 'DIR', '开放管理', '/open', NULL, 'Key', NULL, 4, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (510, 500, 'MENU', '接口目录', 'endpoint', 'open/endpoint/index', 'Link', 'open:endpoint:list', 1, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (511, 510, 'BUTTON', '接口查询', NULL, NULL, NULL, 'open:endpoint:query', 1, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (512, 510, 'BUTTON', '接口新增', NULL, NULL, NULL, 'open:endpoint:add', 2, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (513, 510, 'BUTTON', '接口修改', NULL, NULL, NULL, 'open:endpoint:edit', 3, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (514, 510, 'BUTTON', '接口删除', NULL, NULL, NULL, 'open:endpoint:remove', 4, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (520, 500, 'MENU', '客户端管理', 'client', 'open/client/index', 'Avatar', 'open:client:list', 2, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (521, 520, 'BUTTON', '客户端查询', NULL, NULL, NULL, 'open:client:query', 1, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (522, 520, 'BUTTON', '客户端新增', NULL, NULL, NULL, 'open:client:add', 2, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (523, 520, 'BUTTON', '客户端修改', NULL, NULL, NULL, 'open:client:edit', 3, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (524, 520, 'BUTTON', '客户端删除', NULL, NULL, NULL, 'open:client:remove', 4, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
+INSERT INTO `sys_menu` VALUES (525, 520, 'BUTTON', '重置密钥', NULL, NULL, NULL, 'open:client:resetKey', 5, 1, 1, 0, '2026-07-24 13:33:18.469', '2026-07-24 13:33:18.469', 0);
 
 -- ----------------------------
 -- Table structure for sys_notice
@@ -796,6 +894,7 @@ INSERT INTO `sys_oper_log` VALUES (334535437474005, 1, 'admin', '认证', '退�
 INSERT INTO `sys_oper_log` VALUES (695675427364999, 1, 'admin', '定时任务', '新增', 'JobController#create', '/api/system/jobs', 'POST', '127.0.0.1', 'SUCCESS', NULL, 22, '{\"request\":{\"jobName\":\"测试有参调用\",\"jobGroup\":\"omni-job\",\"invokeTarget\":\"sampleScheduledTasks.echo\",\"jobParams\":\"测试有参调用\",\"cronExpression\":\"0 * * * * ?\",\"misfirePolicy\":0,\"concurrent\":false,\"status\":true,\"remark\":null}}', 'bda6b26ce96e4aec9e5ba0d627f7c85e', '2026-07-23 02:50:08.090');
 INSERT INTO `sys_oper_log` VALUES (1032828912175881, 1, 'admin', '在线用户', '强制下线', 'OnlineUserController#kick', '/api/system/online-users/29c7fb36ba594c0aacbed892ccb565b0', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 5, '{\"jti\":\"29c7fb36ba594c0aacbed892ccb565b0\"}', 'da82e000adb04e3eb9a9088b311219f3', '2026-07-23 02:55:25.213');
 INSERT INTO `sys_oper_log` VALUES (2242895006155784, 1, 'admin', '认证', '退出登录', 'AuthController#logout', '/api/auth/logout', 'POST', '127.0.0.1', 'SUCCESS', NULL, 3, NULL, 'd936127f61854dac9f9225046f6e900f', '2026-07-23 09:09:20.516');
+INSERT INTO `sys_oper_log` VALUES (2431150439459252, 1, 'admin', '开放客户端', '修改', 'OpenApiClientAdminController#update', '/api/open/admin/clients/595458373448572', 'PUT', '127.0.0.1', 'SUCCESS', NULL, 21, '{\"id\":595458373448572,\"request\":{\"name\":\"测试\",\"dailyLimit\":10,\"qpsLimit\":5,\"expireAt\":null,\"remark\":null,\"status\":true,\"ipList\":[],\"endpointIds\":[1]}}', 'd1b4080cc4e74f7aa85db02bf5e947d7', '2026-07-24 06:04:54.934');
 INSERT INTO `sys_oper_log` VALUES (2770890372641462, 1, 'admin', '用户管理', '删除', 'UserController#remove', '/api/system/users/4', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 17, '{\"id\":4}', 'fe97c2865a884054a992b9d870315e64', '2026-07-23 06:21:51.296');
 INSERT INTO `sys_oper_log` VALUES (2856808299307602, 1, 'admin', '文件管理', '上传', 'FileController#upload', '/api/system/files', 'POST', '127.0.0.1', 'SUCCESS', NULL, 22, '{\"bizType\":\"avatar\"}', 'a6434a9604924419a1eb4e6a01dac629', '2026-07-23 06:21:59.313');
 INSERT INTO `sys_oper_log` VALUES (2956722851403175, 1, 'admin', '认证', '退出登录', 'AuthController#logout', '/api/auth/logout', 'POST', '127.0.0.1', 'SUCCESS', NULL, 6, NULL, '4f57a970cb404a9eb91153b1687aba1e', '2026-07-24 00:27:01.788');
@@ -808,6 +907,7 @@ INSERT INTO `sys_oper_log` VALUES (4108268788734606, 1, 'admin', '认证', '退�
 INSERT INTO `sys_oper_log` VALUES (4924639369578054, 1, 'admin', '用户管理', '新增', 'UserController#create', '/api/system/users', 'POST', '127.0.0.1', 'FAIL', '\r\n### Error updating database.  Cause: java.sql.SQLIntegrityConstraintViolationException: Cannot add or update a child row: a foreign key constraint fails (`omni-scaffolding`.`sys_user_role`, CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`))\r\n### The error may exist in file [E:\\code\\java\\omni-scaffolding\\omni-modules\\target\\classes\\mapper\\system\\SysUserQueryMapper.xml]\r\n### The error may involve defaultParameterMap\r\n### The error occurred while setting parameters\r\n### SQL: INSERT INTO sys_user_role (user_id, role_id) VALUES (?, ?)\r\n### Cause: java.sql.SQLIntegrityConstraintViolationException: Cannot add or update a child row: a foreign key constraint fails (`omni-scaffolding`.`sys_user_role`, CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`))\n; Cannot add or update a child row: a foreign key constraint fails (`omni-scaffolding`.`sys_user_role`, CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `sys_use', 431, '{\"request\":{\"username\":\"11111\",\"password\":\"******\",\"nickname\":\"DDDD\",\"realName\":\"DDDD\",\"mobile\":null,\"email\":null,\"gender\":\"UNKNOWN\",\"avatarFileId\":6401387236930554,\"deptId\":1,\"postIds\":[],\"roleIds\":[1],\"enabled\":true}}', 'df10d524095d44aa947367ef46d3bccd', '2026-07-23 05:58:01.475');
 INSERT INTO `sys_oper_log` VALUES (5043917998472424, 1, 'admin', '认证', '退出登录', 'AuthController#logout', '/api/auth/logout', 'POST', '127.0.0.1', 'SUCCESS', NULL, 10, NULL, 'bcf1f2cc21f9408cbd7ad64dcd272679', '2026-07-23 07:38:10.841');
 INSERT INTO `sys_oper_log` VALUES (5062892944730460, 1, 'admin', '用户管理', '删除', 'UserController#remove', '/api/system/users/3', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 30, '{\"id\":3}', '76970225b60844d4af1131d30c2f3697', '2026-07-23 06:21:48.873');
+INSERT INTO `sys_oper_log` VALUES (5465304200160021, 1, 'admin', '开放客户端', '新增', 'OpenApiClientAdminController#create', '/api/open/admin/clients', 'POST', '127.0.0.1', 'SUCCESS', NULL, 70, '{\"request\":{\"name\":\"测试\",\"dailyLimit\":100,\"qpsLimit\":5,\"expireAt\":null,\"remark\":null,\"status\":true,\"ipList\":[],\"endpointIds\":[1]}}', '717806f7e84a4094b64ff19a244f0b23', '2026-07-24 05:37:41.779');
 INSERT INTO `sys_oper_log` VALUES (5473360244956949, 1, 'admin', '菜单管理', '删除', 'MenuController#remove', '/api/system/menus/211', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 16, '{\"id\":211}', '2a85bce32a09420b85f6b459b67b618e', '2026-07-23 04:58:59.588');
 INSERT INTO `sys_oper_log` VALUES (5709858916694298, 1, 'admin', '认证', '退出登录', 'AuthController#logout', '/api/auth/logout', 'POST', '127.0.0.1', 'SUCCESS', NULL, 3, NULL, '90d1fea7d3e7434ea146e780f325379c', '2026-07-23 09:14:18.606');
 INSERT INTO `sys_oper_log` VALUES (6090181652840950, 1, 'admin', '用户管理', '新增', 'UserController#create', '/api/system/users', 'POST', '127.0.0.1', 'SUCCESS', NULL, 102, '{\"request\":{\"username\":\"test\",\"password\":\"******\",\"nickname\":\"test\",\"realName\":null,\"mobile\":null,\"email\":null,\"gender\":\"UNKNOWN\",\"avatarFileId\":459102358155861,\"deptId\":1,\"postIds\":[],\"roleIds\":[2],\"enabled\":true}}', '9fc6492225e74a47a146e4663c4c5842', '2026-07-23 06:22:23.871');
@@ -816,9 +916,13 @@ INSERT INTO `sys_oper_log` VALUES (6484953051597552, 1, 'admin', '在线用户',
 INSERT INTO `sys_oper_log` VALUES (7487104180237288, 1, 'admin', '文件管理', '上传', 'FileController#upload', '/api/system/files', 'POST', '127.0.0.1', 'SUCCESS', NULL, 59, '{\"bizType\":\"common\"}', '313270608b8349f29ba66d0e1c0c3bee', '2026-07-23 03:43:16.153');
 INSERT INTO `sys_oper_log` VALUES (7552193374545186, 1, 'admin', '菜单管理', '删除', 'MenuController#remove', '/api/system/menus/210', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 67, '{\"id\":210}', '3c7d5bd2ae1c49fe9b0f48b2302257a3', '2026-07-23 04:59:02.224');
 INSERT INTO `sys_oper_log` VALUES (7956429450688544, 1, 'admin', '定时任务', '变更状态', 'JobController#changeStatus', '/api/system/jobs/1718173365857657/status', 'PUT', '127.0.0.1', 'SUCCESS', NULL, 59, '{\"id\":1718173365857657,\"request\":{\"status\":false}}', '7773b86d58d840579b59a3e051476c6d', '2026-07-23 02:55:15.571');
+INSERT INTO `sys_oper_log` VALUES (8190974474259148, 1, 'admin', '开放客户端', '重置密钥', 'OpenApiClientAdminController#resetKeys', '/api/open/admin/clients/595458373448572/reset-keys', 'POST', '127.0.0.1', 'SUCCESS', NULL, 18, '{\"id\":595458373448572}', 'cc816ec17450409b9aa18747fb42cea8', '2026-07-24 06:04:24.973');
+INSERT INTO `sys_oper_log` VALUES (8207723420920212, 1, 'admin', '认证', '退出登录', 'AuthController#logout', '/api/auth/logout', 'POST', '127.0.0.1', 'SUCCESS', NULL, 10, NULL, '506d5844f6254ef1829b3afb74721da5', '2026-07-24 03:01:47.517');
 INSERT INTO `sys_oper_log` VALUES (8275576852929831, 1, 'admin', '用户管理', '修改', 'UserController#update', '/api/system/users/5780727731628461', 'PUT', '127.0.0.1', 'SUCCESS', NULL, 59, '{\"id\":5780727731628461,\"request\":{\"nickname\":\"test\",\"realName\":\"哈哈哈哈\",\"mobile\":null,\"email\":null,\"gender\":\"MALE\",\"avatarFileId\":459102358155861,\"deptId\":1,\"postIds\":[],\"roleIds\":[2],\"enabled\":true}}', '63ec2f0375004c36afbbb2aa2f9fc210', '2026-07-23 07:05:43.648');
+INSERT INTO `sys_oper_log` VALUES (8551399685245087, 1, 'admin', '开放接口目录', '修改', 'OpenApiEndpointController#update', '/api/open/admin/endpoints/1', 'PUT', '127.0.0.1', 'SUCCESS', NULL, 18, '{\"id\":1,\"request\":{\"code\":\"open.demo.ping\",\"name\":\"开放演示 Ping\",\"httpMethod\":\"GET\",\"pathPattern\":\"/api/open/demo/ping\",\"remark\":\"脚手架演示接口\",\"status\":true}}', '05df3aa98b7e44ba8b0cc07e858b2f50', '2026-07-24 06:17:18.257');
 INSERT INTO `sys_oper_log` VALUES (8585360676928128, 1, 'admin', '用户管理', '删除', 'UserController#remove', '/api/system/users/2', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 73, '{\"id\":2}', '0ccd3436923b494db23409f372bfa33c', '2026-07-23 06:21:46.841');
 INSERT INTO `sys_oper_log` VALUES (8628508753370209, 1, 'admin', '在线用户', '强制下线', 'OnlineUserController#kick', '/api/system/online-users/74d6a368a72546f7ab39525732cc7e07', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 2, '{\"jti\":\"74d6a368a72546f7ab39525732cc7e07\"}', 'c85e90dee8184798946fd148198ab8d5', '2026-07-23 02:55:23.455');
+INSERT INTO `sys_oper_log` VALUES (8629541475821578, 1, 'admin', '开放接口目录', '修改', 'OpenApiEndpointController#update', '/api/open/admin/endpoints/1', 'PUT', '127.0.0.1', 'SUCCESS', NULL, 63, '{\"id\":1,\"request\":{\"code\":\"open.demo.ping\",\"name\":\"开放演示 Ping\",\"httpMethod\":\"GET\",\"pathPattern\":\"/api/open/demo/ping\",\"remark\":\"脚手架演示接口\",\"status\":false}}', '2a2e7359621b4fbd97dc19d16d307c49', '2026-07-24 06:17:10.533');
 INSERT INTO `sys_oper_log` VALUES (8877465340011695, 1, 'admin', '定时任务', '立即执行', 'JobController#runOnce', '/api/system/jobs/1325085100703352/run', 'POST', '127.0.0.1', 'SUCCESS', NULL, 197, '{\"id\":1325085100703352}', '47dc7f2e822e48baa09c8fa055713832', '2026-07-23 02:49:36.674');
 INSERT INTO `sys_oper_log` VALUES (8992884064797923, 1, 'admin', '菜单管理', '删除', 'MenuController#remove', '/api/system/menus/212', 'DELETE', '127.0.0.1', 'SUCCESS', NULL, 54, '{\"id\":212}', '9dbb17f22aa3449d9a64ecd900547a12', '2026-07-23 04:58:57.531');
 
@@ -993,6 +1097,18 @@ INSERT INTO `sys_role_menu` VALUES (1, 410);
 INSERT INTO `sys_role_menu` VALUES (1, 411);
 INSERT INTO `sys_role_menu` VALUES (1, 412);
 INSERT INTO `sys_role_menu` VALUES (1, 413);
+INSERT INTO `sys_role_menu` VALUES (1, 500);
+INSERT INTO `sys_role_menu` VALUES (1, 510);
+INSERT INTO `sys_role_menu` VALUES (1, 511);
+INSERT INTO `sys_role_menu` VALUES (1, 512);
+INSERT INTO `sys_role_menu` VALUES (1, 513);
+INSERT INTO `sys_role_menu` VALUES (1, 514);
+INSERT INTO `sys_role_menu` VALUES (1, 520);
+INSERT INTO `sys_role_menu` VALUES (1, 521);
+INSERT INTO `sys_role_menu` VALUES (1, 522);
+INSERT INTO `sys_role_menu` VALUES (1, 523);
+INSERT INTO `sys_role_menu` VALUES (1, 524);
+INSERT INTO `sys_role_menu` VALUES (1, 525);
 
 -- ----------------------------
 -- Table structure for sys_user

@@ -38,8 +38,11 @@ cd omni-web && npm run build
 | Elasticsearch | `OMNI_ELASTICSEARCH_ENABLED=false`（默认） | 同上 |
 | Quartz | `OMNI_QUARTZ_ENABLED=false` | 可去掉 `omni-quartz` 依赖与菜单 |
 | 代码生成 | 非 prod 才注册；prod 自然不可用 | `modules/tool/gen` |
+| 开放 API | 不用第三方调用时可删 `modules/open`、Flyway V4 菜单与 `OpenApiAuthFilter` 相关配置 | 管理端 `views/open/` |
 
 依赖方向仍须：`admin → modules/demo/quartz → framework → common`。
+
+业务 Redis 一律走 `RedisService`（`omni-framework`），不要再注入 `StringRedisTemplate`。
 
 ## 3. 生产密钥与登录安全
 

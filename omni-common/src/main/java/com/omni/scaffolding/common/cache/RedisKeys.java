@@ -62,6 +62,16 @@ public final class RedisKeys {
      */
     public static final String LOCK_PRODUCT_SKU_PREFIX = "lock:product:sku:";
 
+    /**
+     * 开放 API 每秒限流后缀（配合 RedisRateLimiter 的 rl: 前缀）：{@code open:qps:{clientId}}。
+     */
+    public static final String OPEN_API_QPS_PREFIX = "open:qps:";
+
+    /**
+     * 开放 API 日调用计数：{@code open:day:{clientId}:{yyyyMMdd}}。
+     */
+    public static final String OPEN_API_DAY_PREFIX = "open:day:";
+
     private RedisKeys() {
     }
 
@@ -184,5 +194,26 @@ public final class RedisKeys {
      */
     public static String lockProductSku(String sku) {
         return LOCK_PRODUCT_SKU_PREFIX + sku;
+    }
+
+    /**
+     * 开放 API QPS 限流业务 Key（不含 rl: 前缀）。
+     *
+     * @param clientId 客户端主键
+     * @return 业务 Key
+     */
+    public static String openApiQps(Long clientId) {
+        return OPEN_API_QPS_PREFIX + clientId;
+    }
+
+    /**
+     * 开放 API 日调用计数业务 Key（不含 rl: 前缀）。
+     *
+     * @param clientId 客户端主键
+     * @param day      日期 {@code yyyyMMdd}
+     * @return 业务 Key
+     */
+    public static String openApiDay(Long clientId, String day) {
+        return OPEN_API_DAY_PREFIX + clientId + ":" + day;
     }
 }

@@ -276,6 +276,7 @@ echo "启动成功，日志: ${LOG_DIR}/omni-scaffolding.log"
 - [ ] 登录成功；若 403 CORS，核对 `OMNI_CORS_ORIGINS`；若 401，看响应 `message`（见上文排障表）
 - [ ] 登录签名失败时，核对前后端 `SIGN_SECRET` 是否同一次构建/部署一致
 - [ ] 侧栏菜单与权限按钮正常（动态权限依赖 Redis + DB）
+- [ ] （若启用开放 API）管理端可维护客户端；`X-Api-Key` 调用 `/api/open/demo/ping` 成功
 
 ---
 
@@ -286,6 +287,7 @@ echo "启动成功，日志: ${LOG_DIR}/omni-scaffolding.log"
 | `omni-admin/.../application-prod.yml` | 正式生产配置 |
 | `omni-admin/.../logback-spring.xml` | 日志（控制台 + 文件） |
 | `omni-framework/.../CorsConfig.java` | CORS 实现 |
+| `omni-framework/.../infra/redis/RedisService.java` | Redis 统一访问封装 |
 | `.env.example` | 环境变量模板 |
 | [README.md](../README.md) | 总览与 Docker |
 | [ADOPT.md](./ADOPT.md) | 换皮 / 裁剪 |

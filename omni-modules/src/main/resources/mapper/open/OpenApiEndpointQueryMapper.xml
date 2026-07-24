@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.omni.scaffolding.modules.open.mapper.OpenApiEndpointQueryMapper">
+
+    <sql id="SearchWhere">
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (code LIKE CONCAT('%', #{keyword}, '%')
+                OR name LIKE CONCAT('%', #{keyword}, '%')
+                OR path_pattern LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <select id="countEndpoints" resultType="long">
+        SELECT COUNT(1)
+        FROM open_api_endpoint
+        <include refid="SearchWhere"/>
+    </select>
+
+    <select id="listEndpoints" resultType="com.omni.scaffolding.modules.open.dto.endpoint.OpenEndpointView">
+        SELECT id, code, name, http_method AS httpMethod, path_pattern AS pathPattern, remark, status
+        FROM open_api_endpoint
+        <include refid="SearchWhere"/>
+        ORDER BY id
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultType="com.omni.scaffolding.modules.open.dto.endpoint.OpenEndpointView">
+        SELECT id, code, name, http_method AS httpMethod, path_pattern AS pathPattern, remark, status
+        FROM open_api_endpoint
+        WHERE id = #{id}
+          AND deleted = 0
+    </select>
+
+    <select id="listEnabledByClientId" resultType="com.omni.scaffolding.modules.open.dto.endpoint.OpenEndpointView">
+        SELECT e.id, e.code, e.name, e.http_method AS httpMethod, e.path_pattern AS pathPattern, e.remark, e.status
+        FROM open_api_endpoint e
+                 INNER JOIN open_api_client_endpoint ce ON ce.endpoint_id = e.id
+        WHERE ce.client_id = #{clientId}
+          AND e.deleted = 0
+          AND e.status = 1
+    </select>
+
+    <select id="listAllEnabled" resultType="com.omni.scaffolding.modules.open.dto.endpoint.OpenEndpointView">
+        SELECT id, code, name, http_method AS httpMethod, path_pattern AS pathPattern, remark, status
+        FROM open_api_endpoint
+        WHERE deleted = 0
+          AND status = 1
+        ORDER BY id
+    </select>
+</mapper>

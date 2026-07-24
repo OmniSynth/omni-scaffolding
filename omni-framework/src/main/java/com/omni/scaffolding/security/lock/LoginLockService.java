@@ -4,13 +4,12 @@ import com.omni.scaffolding.common.api.ErrorCode;
 import com.omni.scaffolding.common.cache.RedisKeys;
 import com.omni.scaffolding.common.exception.BusinessException;
 import com.omni.scaffolding.config.OmniSecurityProperties;
+import com.omni.scaffolding.infra.redis.RedisService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 登录失败锁定：按用户名计数，超过阈值后在 TTL 内拒绝登录。
@@ -20,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class LoginLockService {
 
     private final OmniSecurityProperties securityProperties;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
 
     /**
      * 若账号处于锁定中则抛出业务异常。
@@ -33,7 +32,7 @@ public class LoginLockService {
             return;
         }
         String key = RedisKeys.loginFailUser(normalize(username));
-        String raw = stringRedisTemplate.opsForValue().get(key);
+        String raw = redisService.get(key);
         if (!StringUtils.hasText(raw)) {
             return;
         }
@@ -46,7 +45,7 @@ public class LoginLockService {
         if (failures < cfg.getMaxFailures()) {
             return;
         }
-        Long ttl = stringRedisTemplate.getExpire(key, TimeUnit.SECONDS);
+        Long ttl = redisService.getExpireSeconds(key);
         long remain = ttl == null || ttl < 0 ? cfg.getLockSeconds() : ttl;
         throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS,
                 "登录失败次数过多，请 " + Math.max(1, remain) + " 秒后再试");
@@ -63,10 +62,7 @@ public class LoginLockService {
             return;
         }
         String key = RedisKeys.loginFailUser(normalize(username));
-        Long count = stringRedisTemplate.opsForValue().increment(key);
-        if (count != null && count == 1L) {
-            stringRedisTemplate.expire(key, Duration.ofSeconds(Math.max(60, cfg.getLockSeconds())));
-        }
+        redisService.incrementAndExpireOnCreate(key, Duration.ofSeconds(Math.max(60, cfg.getLockSeconds())));
     }
 
     /**
@@ -78,7 +74,7 @@ public class LoginLockService {
         if (!StringUtils.hasText(username)) {
             return;
         }
-        stringRedisTemplate.delete(RedisKeys.loginFailUser(normalize(username)));
+        redisService.delete(RedisKeys.loginFailUser(normalize(username)));
     }
 
     private static String normalize(String username) {
