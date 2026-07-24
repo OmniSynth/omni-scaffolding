@@ -1,6 +1,9 @@
-package com.omni.scaffolding.common.desensitize;
+package com.omni.scaffolding.common.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.omni.scaffolding.common.desensitize.Desensitize;
+import com.omni.scaffolding.common.desensitize.DesensitizeContext;
+import com.omni.scaffolding.common.desensitize.DesensitizeType;
 import lombok.Data;
 import org.junit.jupiter.api.Test;
 

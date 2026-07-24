@@ -1,4 +1,4 @@
-package com.omni.scaffolding.common.thread;
+package com.omni.scaffolding.common.util;
 
 import org.junit.jupiter.api.Test;
 

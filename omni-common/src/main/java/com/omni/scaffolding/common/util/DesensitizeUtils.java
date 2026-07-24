@@ -1,9 +1,12 @@
-package com.omni.scaffolding.common.desensitize;
+package com.omni.scaffolding.common.util;
+
+import com.omni.scaffolding.common.desensitize.DesensitizeType;
 
 /**
  * 数据脱敏算法工具。
  *
  * <p>空串原样返回；非字符串场景由调用方先转为字符串。
+ * Jackson 字段注解与序列化装配仍在 {@code common.desensitize} 包。
  */
 public final class DesensitizeUtils {
 

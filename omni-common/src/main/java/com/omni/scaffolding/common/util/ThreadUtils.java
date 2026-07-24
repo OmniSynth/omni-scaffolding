@@ -1,5 +1,7 @@
-package com.omni.scaffolding.common.thread;
+package com.omni.scaffolding.common.util;
 
+import com.omni.scaffolding.common.thread.NamedThreadFactory;
+import com.omni.scaffolding.common.thread.ThreadPoolBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

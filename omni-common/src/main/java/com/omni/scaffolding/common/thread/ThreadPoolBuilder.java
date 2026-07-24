@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 平台线程池流式构建器。
  *
- * <p>适合 CPU 密集或需要并发上限的场景；I/O 密集请优先 {@link ThreadUtils#newVirtualExecutor(String)}。
+ * <p>适合 CPU 密集或需要并发上限的场景；I/O 密集请优先 {@link com.omni.scaffolding.common.util.ThreadUtils#newVirtualExecutor(String)}。
  *
  * <pre>{@code
  * ThreadPoolExecutor pool = ThreadPoolBuilder.create("export")

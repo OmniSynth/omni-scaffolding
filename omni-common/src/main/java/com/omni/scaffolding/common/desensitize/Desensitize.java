@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  * <p>需要返回明文时，在 Controller 方法上标注 {@link WithoutDesensitize}。
  *
  * @see DesensitizeType
- * @see DesensitizeUtils
+ * @see com.omni.scaffolding.common.util.DesensitizeUtils
  * @see WithoutDesensitize
  */
 @Documented

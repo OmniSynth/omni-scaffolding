@@ -12,7 +12,7 @@
  * <h2>约定</h2>
  * <ul>
  *   <li>仅影响 JSON 输出，不改数据库与内存对象</li>
- *   <li>算法见 {@link com.omni.scaffolding.common.desensitize.DesensitizeUtils}</li>
+ *   <li>算法见 {@link com.omni.scaffolding.common.util.DesensitizeUtils}</li>
  * </ul>
  */
 package com.omni.scaffolding.common.desensitize;
