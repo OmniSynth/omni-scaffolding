@@ -90,7 +90,10 @@ onMounted(loadCaptcha)
 <template>
   <div class="login-page">
     <div class="panel">
-      <h1>Omni Admin</h1>
+      <div class="brand">
+        <img class="brand-logo" src="/favicon.png" alt="Omni Admin" width="48" height="48" />
+        <h1>Omni Admin</h1>
+      </div>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="onSubmit">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" autocomplete="username" />
@@ -136,8 +139,22 @@ onMounted(loadCaptcha)
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
 }
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.brand-logo {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: contain;
+}
 h1 {
-  margin: 0 0 24px;
+  margin: 0;
   font-size: 28px;
   color: #0f172a;
 }
