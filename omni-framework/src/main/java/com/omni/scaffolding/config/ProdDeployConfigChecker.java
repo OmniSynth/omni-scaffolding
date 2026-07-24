@@ -112,7 +112,7 @@ public final class ProdDeployConfigChecker {
         } else {
             int bytes = jwt.getBytes(StandardCharsets.UTF_8).length;
             if (bytes < 32) {
-                items.add(fail("OMNI_JWT_SECRET", "至少 32 字节，当前=" + bytes + "；生成：openssl rand -base64 32"));
+                items.add(fail("OMNI_JWT_SECRET", "至少 32 字节，当前=" + jwt + "--" + bytes + "；生成：openssl rand -base64 32"));
             } else {
                 items.add(ok("OMNI_JWT_SECRET", "长度=" + bytes + " 字节"));
             }
@@ -127,7 +127,7 @@ public final class ProdDeployConfigChecker {
         } else {
             String s = sign.trim();
             if (s.length() < 8) {
-                items.add(fail("OMNI_SIGN_SECRET", "至少 8 位，当前=" + s.length() + "；须 = VITE_OMNI_SIGN_SECRET，改后需重建前端"));
+                items.add(fail("OMNI_SIGN_SECRET", "至少 8 位，当前=" + s + "--" + s.length() + "；须 = VITE_OMNI_SIGN_SECRET，改后需重建前端"));
             } else {
                 items.add(ok("OMNI_SIGN_SECRET", "长度=" + s.length() + "；须 = VITE_OMNI_SIGN_SECRET"));
             }
